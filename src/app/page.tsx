@@ -1,11 +1,15 @@
 import HeroSection from "../components/HeroSection";
-import LeadForm from "../components/LeadForm";
+import OfferSection from "../components/OfferSection";
+import ServicesSection from "../components/ServicesSection";
+import WhyChooseUs from "../components/WhyChooseUs";
 
-export default function Home(){
-  return(
+export default function Home() {
+  return (
     <>
-    <HeroSection />
-    <LeadForm />
+      <HeroSection />
+      <OfferSection />
+      <ServicesSection />
+      <WhyChooseUs />
     </>
   );
 }

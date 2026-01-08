@@ -1,84 +1,188 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import api from "../../../lib/api";
 
 type Mode = "login" | "signup";
 
 export default function VendorAuthPage() {
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
+
   const [mode, setMode] = useState<Mode>("login");
   const [step, setStep] = useState(1);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   const [form, setForm] = useState({
     email: "",
     otp: "",
     companyName: "",
-    contactPerson: "",
     phone: "",
     address: "",
-    servicesOffered: "",
-    licenseNumber: "",
-    yearsInBusiness: "",
-    website: "",
-    bio: "",
+    password: "", // ✅ USER SETS PASSWORD
+    role: "vendor",
   });
 
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   function handleChange(
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement>
   ) {
     const { name, value } = e.target;
-    setForm((s) => ({ ...s, [name]: value }));
+    setForm((prev) => ({ ...prev, [name]: value }));
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
 
-    /* STEP 1: ENTER EMAIL */
+    /* ---------- STEP 1: SEND OTP ---------- */
     if (step === 1) {
-      if (!form.email) {
-        setError("Email is required");
-        return;
+      if (!form.email) return setError("Email is required");
+
+      setLoading(true);
+      try {
+        const endpoint =
+          mode === "login"
+            ? "/api/auth/login/send-otp"
+            : "/api/auth/register/send-otp";
+
+        await api.post(endpoint, { email: form.email });
+        setStep(2);
+      } catch (err: any) {
+        if (err.response?.status === 404) {
+          setError("User not found. Please sign up.");
+        } else if (err.response?.status === 422 && mode === "signup") {
+          setError("Email already registered. Please login.");
+          setMode("login");
+          setStep(1);
+        } else {
+          setError("Network error");
+        }
+      } finally {
+        setLoading(false);
       }
-      // TODO: API → send OTP
-      console.log("Send OTP to:", form.email);
-      alert("OTP sent (demo)");
-      setStep(2);
       return;
     }
 
-    /* STEP 2: VERIFY OTP */
+    /* ---------- STEP 2: VERIFY OTP ---------- */
     if (step === 2) {
-      if (!form.otp) {
-        setError("OTP is required");
-        return;
-      }
-      // TODO: API → verify OTP
-      console.log("Verify OTP:", form.otp);
-      alert("OTP verified (demo)");
+      if (!form.otp) return setError("OTP is required");
 
-      if (mode === "login") {
-        router.push("/vendor/dashboard");
-      } else {
-        setStep(3);
+      setLoading(true);
+      try {
+        const endpoint =
+          mode === "login"
+            ? "/api/auth/login/verify"
+            : "/api/auth/register/verify-otp";
+
+        const res = await api.post(endpoint, {
+          email: form.email,
+          otp: form.otp,
+        });
+
+        if (res.data.success) {
+          if (mode === "login") {
+            localStorage.setItem("token", res.data.token);
+            localStorage.setItem("user", JSON.stringify(res.data.user));
+            router.push("/vendor/dashboard");
+          } else {
+            setStep(3);
+          }
+        }
+      } catch {
+        setError("Invalid or expired OTP");
+      } finally {
+        setLoading(false);
       }
       return;
     }
 
-    /* STEP 3: SIGNUP DETAILS */
+    /* ---------- STEP 3: COMPLETE REGISTRATION ---------- */
     if (step === 3) {
-      if (!form.companyName || !form.phone) {
-        setError("Company name and phone are required");
-        return;
+      if (!form.companyName || !form.phone || !form.password) {
+        return setError("All fields are required");
       }
-      // TODO: API → create vendor
-      console.log("Vendor signup payload:", form);
-      alert("Vendor account created (demo)");
-      router.push("/vendor/dashboard");
+
+      setLoading(true);
+      try {
+        const res = await api.post("/api/auth/register/complete", {
+          email: form.email,
+          name: form.companyName,
+          phone: form.phone,
+          password: form.password,
+          role: "vendor",
+        });
+
+        if (res.data.success) {
+          router.push("/vendor/dashboard");
+        }
+      } catch (err: any) {
+        setError(err.response?.data?.message || "Registration failed");
+      } finally {
+        setLoading(false);
+      }
     }
   }
+
+  const renderFields = () => {
+    if (step === 1)
+      return (
+        <input
+          name="email"
+          type="email"
+          placeholder="Email"
+          value={form.email}
+          onChange={handleChange}
+          style={styles.input}
+        />
+      );
+
+    if (step === 2)
+      return (
+        <input
+          name="otp"
+          placeholder="Enter OTP"
+          value={form.otp}
+          onChange={handleChange}
+          style={styles.input}
+        />
+      );
+
+    if (step === 3 && mode === "signup")
+      return (
+        <>
+          <input
+            name="companyName"
+            placeholder="Company Name"
+            value={form.companyName}
+            onChange={handleChange}
+            style={styles.input}
+          />
+          <input
+            name="phone"
+            placeholder="Phone Number"
+            value={form.phone}
+            onChange={handleChange}
+            style={styles.input}
+          />
+          <input
+            type="password"
+            name="password"
+            placeholder="Create Password"
+            value={form.password}
+            onChange={handleChange}
+            style={styles.input}
+          />
+        </>
+      );
+  };
+
+  if (!mounted) return null;
 
   return (
     <main style={styles.page}>
@@ -86,65 +190,38 @@ export default function VendorAuthPage() {
         <h2 style={styles.title}>
           {mode === "login"
             ? `Vendor Login - Step ${step}`
-            : `Vendor Sign Up - Step ${step}`}
+            : `Vendor Signup - Step ${step}`}
         </h2>
 
         <form onSubmit={handleSubmit}>
-          {/* STEP 1 */}
-          {step === 1 && (
-            <input
-              name="email"
-              placeholder="Enter email"
-              value={form.email}
-              onChange={handleChange}
-              style={styles.input}
-            />
-          )}
+          {renderFields()}
+          {error && <p style={styles.error}>{error}</p>}
 
-          {/* STEP 2 */}
-          {step === 2 && (
-            <input
-              name="otp"
-              placeholder="Enter OTP"
-              value={form.otp}
-              onChange={handleChange}
-              style={styles.input}
-            />
-          )}
-
-          {/* STEP 3 (SIGNUP ONLY) */}
-          {step === 3 && mode === "signup" && (
-            <>
-              <input name="companyName" placeholder="Company name" value={form.companyName} onChange={handleChange} style={styles.input} />
-              <input name="contactPerson" placeholder="Contact person" value={form.contactPerson} onChange={handleChange} style={styles.input} />
-              <input name="phone" placeholder="Phone number" value={form.phone} onChange={handleChange} style={styles.input} />
-              <input name="address" placeholder="Business address" value={form.address} onChange={handleChange} style={styles.input} />
-              <input name="servicesOffered" placeholder="Services offered" value={form.servicesOffered} onChange={handleChange} style={styles.input} />
-              <input name="licenseNumber" placeholder="License number" value={form.licenseNumber} onChange={handleChange} style={styles.input} />
-              <input name="yearsInBusiness" placeholder="Years in business" value={form.yearsInBusiness} onChange={handleChange} style={styles.input} />
-              <input name="website" placeholder="Website (optional)" value={form.website} onChange={handleChange} style={styles.input} />
-              <textarea name="bio" placeholder="Company bio" value={form.bio} onChange={handleChange} style={{ ...styles.input, minHeight: 80 }} />
-            </>
-          )}
-
-          {error && <p style={{ color: "red" }}>{error}</p>}
-
-          <button type="submit" style={styles.primaryBtn}>
-            {step < (mode === "login" ? 2 : 3) ? "Next" : mode === "login" ? "Login" : "Create Account"}
+          <button style={styles.btn} disabled={loading}>
+            {loading ? "Please wait..." : step < 3 ? "Next" : "Create Account"}
           </button>
         </form>
 
         <p style={styles.text}>
-          {mode === "login" ? "Don’t have an account? " : "Already have an account? "}
+          {mode === "login" ? "No account? " : "Already have an account? "}
           <span
             style={styles.link}
             onClick={() => {
               setMode(mode === "login" ? "signup" : "login");
               setStep(1);
               setError("");
+              setForm({
+                email: "",
+                otp: "",
+                companyName: "",
+                phone: "",
+                address: "",
+                password: "",
+                role: "vendor",
+              });
             }}
           >
-            {mode === "login" ? "Sign Up" : "Login"}
+            {mode === "login" ? "Sign up" : "Login"}
           </span>
         </p>
       </div>
@@ -152,48 +229,51 @@ export default function VendorAuthPage() {
   );
 }
 
+/* ---------- STYLES ---------- */
 const styles = {
   page: {
     minHeight: "100vh",
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
-    background: "#F4F6F8",
+    background: "#f5f7fa",
   },
   card: {
-    width: 380,
+    width: 360,
     padding: 28,
     background: "#fff",
-    borderRadius: 20,
-    boxShadow: "0 10px 30px rgba(0,0,0,0.08)",
+    borderRadius: 16,
   },
   title: {
     textAlign: "center" as const,
     marginBottom: 20,
-    color: "#1A73E8",
+    color: "#1E88E5",
   },
   input: {
     width: "100%",
     padding: 12,
     marginBottom: 14,
-    borderRadius: 14,
-    border: "1px solid #ddd",
+    borderRadius: 10,
+    border: "1px solid #ccc",
   },
-  primaryBtn: {
+  btn: {
     width: "100%",
     padding: 12,
-    background: "#1A73E8",
+    background: "#1E88E5",
     color: "#fff",
     border: "none",
-    borderRadius: 16,
-    cursor: "pointer",
+    borderRadius: 12,
+  },
+  error: {
+    color: "red",
+    marginBottom: 10,
   },
   text: {
     marginTop: 14,
     textAlign: "center" as const,
   },
   link: {
-    color: "#1A73E8",
+    color: "#1E88E5",
     cursor: "pointer",
   },
 };

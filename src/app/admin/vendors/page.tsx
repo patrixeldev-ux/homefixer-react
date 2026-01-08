@@ -1,20 +1,28 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-export default function VendorsPage() {
-  const router = useRouter();
-  const [selectedVendor, setSelectedVendor] = useState<any>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+interface Vendor {
+  name: string;
+  category: string;
+  activeOrders: number;
+  status: string;
+  profileImage: string;
+  ownerName: string;
+  shopType: string;
+  businessDetails: any;
+  bankDetails: any;
+  documents: any;
+}
 
-  const vendors = [
+export default function VendorsPage() {
+  const [vendors] = useState<Vendor[]>([
     {
       name: "QuickFix Services",
       category: "AC Repair",
       activeOrders: 2,
       status: "BUSY",
-      profileImage: "https://randomuser.me/api/portraits/men/1.jpg", // Dummy photo
+      profileImage: "https://randomuser.me/api/portraits/men/1.jpg",
       ownerName: "Raj Verma",
       shopType: "Hardware Store",
       businessDetails: {
@@ -44,7 +52,7 @@ export default function VendorsPage() {
       category: "Plumbing",
       activeOrders: 0,
       status: "AVAILABLE",
-      profileImage: "https://randomuser.me/api/portraits/men/2.jpg", // Dummy photo
+      profileImage: "https://randomuser.me/api/portraits/men/2.jpg",
       ownerName: "Amit Sharma",
       shopType: "Plumbing Services",
       businessDetails: {
@@ -69,69 +77,65 @@ export default function VendorsPage() {
         idProof: "ID_PROOF_002.pdf",
       },
     },
-  ];
+  ]);
 
-  const handleView = (vendor: any) => {
-    setSelectedVendor(vendor);
-    setIsModalOpen(true);
-  };
+  const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
 
-  const handleFire = (name: string) => {
-    alert(`Fired ${name}`);
-  };
+  const handleView = (vendor: Vendor) => setSelectedVendor(vendor);
+
+  const handleClose = () => setSelectedVendor(null);
+
+  const handleFire = (name: string) => alert(`Fired ${name}`);
 
   return (
-    <div className="space-y-6">
+    <div className="p-8 bg-gray-50 min-h-screen">
       {/* Header */}
-      <div className="bg-white p-5 rounded-xl shadow">
-        <h1 className="text-xl font-semibold">Vendors</h1>
-        <p className="text-sm text-gray-500">
-          Manage vendor availability and workload
-        </p>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900">Vendors Dashboard</h1>
+        <p className="mt-2 text-gray-500">Manage vendor availability, workload, and details.</p>
       </div>
 
-      {/* Vendor List */}
-      <div className="space-y-4">
+      {/* Vendor Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {vendors.map((v, i) => (
           <div
             key={i}
-            className="bg-white p-5 rounded-xl shadow flex justify-between items-center"
+            className="bg-white rounded-2xl shadow-lg p-6 hover:shadow-2xl transition-shadow duration-300 relative border border-gray-100"
           >
-            {/* Vendor Info */}
-            <div>
-              <p className="font-medium text-lg">{v.name}</p>
-              <p className="text-sm text-gray-500">
-                Category: {v.category}
-              </p>
+            {/* Status Badge */}
+            <VendorStatusBadge status={v.status} />
 
-              {v.status === "BUSY" ? (
-                <p className="text-sm mt-1">
-                  📋 Active Orders:{" "}
-                  <span className="font-medium">
-                    {v.activeOrders}
-                  </span>
-                </p>
-              ) : (
-                <p className="text-sm mt-1 text-green-600">
-                  🟢 Available
-                </p>
-              )}
+            {/* Vendor Info */}
+            <div className="flex items-center gap-4 mb-4">
+              <img
+                src={v.profileImage}
+                alt={v.name}
+                className="w-16 h-16 rounded-full object-cover border border-gray-200"
+              />
+              <div>
+                <p className="text-lg font-semibold text-gray-900">{v.name}</p>
+                <p className="text-gray-500">{v.category}</p>
+                {v.status === "BUSY" ? (
+                  <p className="text-gray-700 mt-1">
+                    📋 <span className="font-medium">Active Orders: {v.activeOrders}</span>
+                  </p>
+                ) : (
+                  <p className="text-green-600 font-medium mt-1">🟢 Available</p>
+                )}
+              </div>
             </div>
 
-            {/* Actions */}
-            <div className="flex items-center gap-3">
-              <VendorStatusBadge status={v.status} />
-
+            {/* Action Buttons */}
+            <div className="flex gap-3">
               <button
                 onClick={() => handleView(v)}
-                className="px-3 py-1 text-sm bg-blue-100 text-blue-600 rounded cursor-pointer"
+                className="flex-1 py-2 px-4 text-white font-semibold bg-blue-600 rounded-xl hover:bg-blue-700 transition-colors shadow-md"
               >
                 View
               </button>
-
               <button
                 onClick={() => handleFire(v.name)}
-                className="px-3 py-1 text-sm bg-red-100 text-red-600 rounded cursor-pointer"
+                className="flex-1 py-2 px-4 text-white font-semibold bg-red-600 rounded-xl hover:bg-red-700 transition-colors shadow-md"
               >
                 Fire
               </button>
@@ -140,77 +144,72 @@ export default function VendorsPage() {
         ))}
       </div>
 
-      {/* Vendor Profile Modal */}
-      {isModalOpen && selectedVendor && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-2xl font-semibold">Vendor Profile</h2>
+      {/* Vendor Modal */}
+      {selectedVendor && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6 relative">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold">{selectedVendor.name}</h2>
               <button
-                onClick={() => setIsModalOpen(false)}
-                className="text-gray-500 hover:text-gray-700"
+                onClick={handleClose}
+                className="text-gray-500 hover:text-gray-700 font-bold text-xl"
               >
                 ✕
               </button>
             </div>
 
-            <div className="space-y-6">
-              {/* Profile Image and Basic Info */}
-              <div className="flex items-center space-x-4">
-                <img
-                  src={selectedVendor.profileImage}
-                  alt="Profile"
-                  className="w-24 h-24 rounded-full object-cover"
-                />
-                <div>
-                  <h3 className="text-xl font-medium">{selectedVendor.ownerName}</h3>
-                  <p className="text-gray-600">{selectedVendor.shopType}</p>
-                </div>
-              </div>
-
-              {/* Business Details */}
+            {/* Profile */}
+            <div className="flex items-center gap-6 mb-6">
+              <img
+                src={selectedVendor.profileImage}
+                alt={selectedVendor.name}
+                className="w-24 h-24 rounded-full object-cover border border-gray-200"
+              />
               <div>
-                <h4 className="text-lg font-semibold mb-2">Business Details</h4>
+                <p className="text-xl font-semibold">{selectedVendor.ownerName}</p>
+                <p className="text-gray-600">{selectedVendor.shopType}</p>
+              </div>
+            </div>
+
+            {/* Business & Bank Details */}
+            <div className="space-y-6">
+              <Section title="Business Details">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p><strong>Shop Name:</strong> {selectedVendor.businessDetails.shopName}</p>
                     <p><strong>GST Number:</strong> {selectedVendor.businessDetails.gstNumber}</p>
-                    <p><strong>Contact Number:</strong> {selectedVendor.businessDetails.contactNumber}</p>
+                    <p><strong>Contact:</strong> {selectedVendor.businessDetails.contactNumber}</p>
                   </div>
                   <div>
                     <p><strong>Email:</strong> {selectedVendor.businessDetails.email}</p>
                     <p><strong>Store Timing:</strong> {selectedVendor.businessDetails.storeTiming}</p>
-                    <p><strong>City / State:</strong> {selectedVendor.businessDetails.cityState}</p>
+                    <p><strong>City/State:</strong> {selectedVendor.businessDetails.cityState}</p>
                   </div>
                 </div>
-                <p className="mt-2"><strong>Full Address:</strong> {selectedVendor.businessDetails.fullAddress}</p>
-              </div>
+                <p><strong>Full Address:</strong> {selectedVendor.businessDetails.fullAddress}</p>
+              </Section>
 
-              {/* Bank Details */}
-              <div>
-                <h4 className="text-lg font-semibold mb-2">Bank Details</h4>
+              <Section title="Bank Details">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <p><strong>Account Holder Name:</strong> {selectedVendor.bankDetails.accountHolderName}</p>
+                    <p><strong>Account Holder:</strong> {selectedVendor.bankDetails.accountHolderName}</p>
                     <p><strong>Bank Name:</strong> {selectedVendor.bankDetails.bankName}</p>
                   </div>
                   <div>
                     <p><strong>Account Number:</strong> {selectedVendor.bankDetails.accountNumber}</p>
-                    <p><strong>IFSC Code:</strong> {selectedVendor.bankDetails.ifscCode}</p>
+                    <p><strong>IFSC:</strong> {selectedVendor.bankDetails.ifscCode}</p>
                     <p><strong>UPI ID:</strong> {selectedVendor.bankDetails.upiId}</p>
                   </div>
                 </div>
-              </div>
+              </Section>
 
-              {/* Documents Section */}
-              <div>
-                <h4 className="text-lg font-semibold mb-2">Documents</h4>
+              <Section title="Documents">
                 <div className="space-y-2">
                   <p><strong>GST Certificate:</strong> <a href="#" className="text-blue-600">{selectedVendor.documents.gstCertificate}</a></p>
                   <p><strong>Store Registration:</strong> <a href="#" className="text-blue-600">{selectedVendor.documents.storeRegistration}</a></p>
                   <p><strong>ID Proof:</strong> <a href="#" className="text-blue-600">{selectedVendor.documents.idProof}</a></p>
                 </div>
-              </div>
+              </Section>
             </div>
           </div>
         </div>
@@ -219,14 +218,22 @@ export default function VendorsPage() {
   );
 }
 
+/* Section Component for Modal */
+const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
+  <div>
+    <h4 className="text-lg font-semibold mb-2">{title}</h4>
+    <div>{children}</div>
+  </div>
+);
+
 /* Status Badge */
 function VendorStatusBadge({ status }: { status: string }) {
   return (
     <span
-      className={`px-3 py-1 rounded-full text-xs font-medium ${
+      className={`absolute top-4 right-4 px-3 py-1 rounded-full text-xs font-semibold ${
         status === "BUSY"
-          ? "bg-yellow-100 text-yellow-700"
-          : "bg-green-100 text-green-700"
+          ? "bg-yellow-200 text-yellow-800"
+          : "bg-green-200 text-green-800"
       }`}
     >
       {status === "BUSY" ? "Busy" : "Available"}

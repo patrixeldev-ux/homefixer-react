@@ -1,14 +1,20 @@
 "use client";
 
-import React, { useState } from "react";
-import { useRouter } from "next/navigation"; // for redirect
+import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import api from "../../../lib/api";
 
 type Mode = "login" | "signup";
 
 export default function ServiceManPage() {
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
+
   const [mode, setMode] = useState<Mode>("login");
   const [step, setStep] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
   const [form, setForm] = useState({
     email: "",
     otp: "",
@@ -19,82 +25,130 @@ export default function ServiceManPage() {
     yearsExperience: "",
     availability: "",
     bio: "",
+    password: "", // ✅ USER WILL SET PASSWORD
+    role: "serviceman",
   });
-  const [error, setError] = useState("");
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   function handleChange(
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) {
     const { name, value } = e.target;
-    setForm((s) => ({ ...s, [name]: value }));
+    setForm((prev) => ({ ...prev, [name]: value }));
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
 
-    // Step 1: Enter Email
+    /* ---------- STEP 1: SEND OTP ---------- */
     if (step === 1) {
-      if (!form.email) {
-        setError("Email is required.");
-        return;
+      if (!form.email) return setError("Email is required");
+
+      setLoading(true);
+      try {
+        const endpoint =
+          mode === "login"
+            ? "/api/auth/login/send-otp"
+            : "/api/auth/register/send-otp";
+
+        await api.post(endpoint, { email: form.email });
+        setStep(2);
+      } catch (err: any) {
+        if (err.response?.status === 404) {
+          setError("User not found. Please sign up.");
+        } else if (err.response?.status === 422 && mode === "signup") {
+          setError("Email already registered. Please login.");
+          setMode("login");
+          setStep(1);
+        } else {
+          setError("Network error");
+        }
+      } finally {
+        setLoading(false);
       }
-      // TODO: Call API to send OTP
-      console.log("Send OTP to:", form.email);
-      alert("OTP sent! (demo)");
-      setStep(2);
       return;
     }
 
-    // Step 2: Enter OTP
+    /* ---------- STEP 2: VERIFY OTP ---------- */
     if (step === 2) {
-      if (!form.otp) {
-        setError("OTP is required.");
-        return;
-      }
-      // TODO: Call API to verify OTP
-      console.log("Verify OTP for:", form.email, form.otp);
-      alert("OTP verified! (demo)");
-      if (mode === "login") {
-        // Redirect to dashboard
-        router.push("/service-man/dashboard");
-      } else {
-        setStep(3); // Signup continues to user info
+      if (!form.otp) return setError("OTP is required");
+
+      setLoading(true);
+      try {
+        const endpoint =
+          mode === "login"
+            ? "/api/auth/login/verify"
+            : "/api/auth/register/verify-otp";
+
+        const res = await api.post(endpoint, {
+          email: form.email,
+          otp: form.otp,
+        });
+
+        if (res.data.success) {
+          if (mode === "login") {
+            localStorage.setItem("token", res.data.token);
+            localStorage.setItem("user", JSON.stringify(res.data.user));
+            router.push("/service-man/dashboard");
+          } else {
+            setStep(3);
+          }
+        }
+      } catch (err: any) {
+        setError("Invalid or expired OTP");
+      } finally {
+        setLoading(false);
       }
       return;
     }
 
-    // Step 3: Signup final info
+    /* ---------- STEP 3: COMPLETE SIGNUP ---------- */
     if (step === 3) {
-      if (!form.fullName || !form.phone) {
-        setError("Full name and phone are required.");
-        return;
+      if (!form.fullName || !form.phone || !form.password) {
+        return setError("Name, phone and password are required");
       }
-      // TODO: Call API to create service man
-      console.log("Signup payload:", form);
-      alert("Account created! (demo)");
-      router.push("/service-man/dashboard");
-      return;
+
+      setLoading(true);
+      try {
+        const res = await api.post("/api/auth/register/complete", {
+          email: form.email,
+          name: form.fullName,
+          phone: form.phone,
+          password: form.password, // ✅ USER PASSWORD
+          role: "serviceman",
+        });
+
+        if (res.data.success) {
+          router.push("/service-man/dashboard");
+        }
+      } catch (err: any) {
+        setError(err.response?.data?.message || "Registration failed");
+      } finally {
+        setLoading(false);
+      }
     }
   }
 
   const renderStep = () => {
-    if (step === 1) {
+    if (step === 1)
       return (
         <input
           type="email"
           name="email"
-          placeholder="Enter your email"
+          placeholder="Email"
           value={form.email}
           onChange={handleChange}
           style={styles.input}
         />
       );
-    }
-    if (step === 2) {
+
+    if (step === 2)
       return (
         <input
-          type="text"
           name="otp"
           placeholder="Enter OTP"
           value={form.otp}
@@ -102,8 +156,8 @@ export default function ServiceManPage() {
           style={styles.input}
         />
       );
-    }
-    if (step === 3 && mode === "signup") {
+
+    if (step === 3 && mode === "signup")
       return (
         <>
           <input
@@ -121,48 +175,18 @@ export default function ServiceManPage() {
             style={styles.input}
           />
           <input
-            name="address"
-            placeholder="Address"
-            value={form.address}
+            type="password"
+            name="password"
+            placeholder="Create password"
+            value={form.password}
             onChange={handleChange}
             style={styles.input}
-          />
-          <input
-            name="skills"
-            placeholder="Skills (comma separated)"
-            value={form.skills}
-            onChange={handleChange}
-            style={styles.input}
-          />
-          <input
-            name="yearsExperience"
-            placeholder="Years of experience"
-            value={form.yearsExperience}
-            onChange={handleChange}
-            style={styles.input}
-          />
-          <select
-            name="availability"
-            value={form.availability}
-            onChange={handleChange}
-            style={styles.input}
-          >
-            <option value="">Select availability</option>
-            <option value="full-time">Full time</option>
-            <option value="part-time">Part time</option>
-            <option value="weekends">Weekends</option>
-          </select>
-          <textarea
-            name="bio"
-            placeholder="Short bio / description"
-            value={form.bio}
-            onChange={handleChange}
-            style={{ ...styles.input, minHeight: 80, resize: "vertical" as const }}
           />
         </>
       );
-    }
   };
+
+  if (!mounted) return null;
 
   return (
     <main style={styles.page}>
@@ -170,21 +194,21 @@ export default function ServiceManPage() {
         <h2 style={styles.title}>
           {mode === "login"
             ? `Service Man Login - Step ${step}`
-            : `Sign Up - Step ${step}`}
+            : `Service Man Signup - Step ${step}`}
         </h2>
 
         <form onSubmit={handleSubmit}>
           {renderStep()}
 
-          {error && <p style={{ color: "#d32f2f", marginBottom: 12 }}>{error}</p>}
+          {error && <p style={{ color: "red" }}>{error}</p>}
 
-          <button type="submit" style={styles.primaryBtn}>
-            {step < (mode === "login" ? 2 : 3) ? "Next" : mode === "login" ? "Login" : "Create account"}
+          <button style={styles.primaryBtn} disabled={loading}>
+            {loading ? "Please wait..." : "Next"}
           </button>
         </form>
 
         <p style={styles.text}>
-          {mode === "login" ? "Don’t have an account? " : "Already have an account? "}
+          {mode === "login" ? "No account? " : "Already have account? "}
           <span
             style={styles.link}
             onClick={() => {
@@ -201,56 +225,47 @@ export default function ServiceManPage() {
   );
 }
 
+/* -------- STYLES -------- */
 const styles = {
   page: {
     minHeight: "100vh",
-    background: "#F8F9FA",
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
-    fontFamily: "Inter, sans-serif",
+    background: "#F5F7FA",
   },
   card: {
-    width: "360px",
-    padding: "28px",
-    background: "#ffffff",
-    borderRadius: "20px",
-    boxShadow: "0 10px 30px rgba(0,0,0,0.08)",
+    width: 360,
+    padding: 28,
+    background: "#fff",
+    borderRadius: 18,
   },
   title: {
     textAlign: "center" as const,
-    marginBottom: "20px",
+    marginBottom: 20,
     color: "#1E88E5",
-    fontSize: "22px",
-    fontWeight: 600,
   },
   input: {
     width: "100%",
-    padding: "12px",
-    marginBottom: "14px",
-    borderRadius: "14px",
-    border: "1px solid #ddd",
-    fontSize: "14px",
+    padding: 12,
+    marginBottom: 14,
+    borderRadius: 12,
+    border: "1px solid #ccc",
   },
   primaryBtn: {
     width: "100%",
-    padding: "12px",
+    padding: 12,
     background: "#1E88E5",
-    color: "#ffffff",
+    color: "#fff",
     border: "none",
-    borderRadius: "16px",
-    cursor: "pointer",
-    fontSize: "15px",
+    borderRadius: 14,
   },
   text: {
-    marginTop: "14px",
+    marginTop: 14,
     textAlign: "center" as const,
-    fontSize: "14px",
-    color: "#555",
   },
   link: {
     color: "#1E88E5",
     cursor: "pointer",
-    fontWeight: 500,
   },
 };

@@ -97,7 +97,7 @@ export default function CustomerAuthPage() {
           if (mode === "login") {
             localStorage.setItem("token", res.data.token);
             localStorage.setItem("user", JSON.stringify(res.data.user));
-            router.push("/customer/booking");
+            router.push("/customer/dashboard");
           } else {
             setStep(3);
           }

@@ -1,11 +1,19 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
+
+interface ServiceMan {
+  name: string;
+  serviceType: string;
+  currentJob: string | null;
+  status: string;
+}
 
 export default function ServiceMenPage() {
   const router = useRouter();
 
-  const serviceMen = [
+  const [serviceMen] = useState<ServiceMan[]>([
     {
       name: "Rohit Sharma",
       serviceType: "Electrician",
@@ -18,66 +26,64 @@ export default function ServiceMenPage() {
       currentJob: null,
       status: "FREE",
     },
-  ];
+  ]);
 
-  const handleView = (name: string) => {
-    alert(`Viewing ${name}`);
+  const [selectedMan, setSelectedMan] = useState<ServiceMan | null>(null);
+
+  const handleView = (man: ServiceMan) => {
+    setSelectedMan(man); // open modal
   };
+
+  const handleClose = () => setSelectedMan(null);
 
   const handleFire = (name: string) => {
     alert(`Fired ${name}`);
   };
 
   return (
-    <div className="space-y-6">
+    <div className="p-8 bg-gray-50 min-h-screen">
       {/* Header */}
-      <div className="bg-white p-5 rounded-xl shadow">
-        <h1 className="text-xl font-semibold">Service Men</h1>
-        <p className="text-sm text-gray-500">
-          Track service man availability and current work
-        </p>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900">Service Men Dashboard</h1>
+        <p className="mt-2 text-gray-500">Monitor availability and current work of all service men.</p>
       </div>
 
-      {/* List */}
-      <div className="space-y-4">
+      {/* Service Men Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {serviceMen.map((s, i) => (
           <div
             key={i}
-            className="bg-white p-5 rounded-xl shadow flex justify-between items-center"
+            className="bg-white rounded-2xl shadow-lg p-6 hover:shadow-2xl transition-shadow duration-300 relative border border-gray-100"
           >
-            {/* Left Info */}
-            <div>
-              <p className="font-medium text-lg">{s.name}</p>
-              <p className="text-sm text-gray-500">
-                Service: {s.serviceType}
-              </p>
+            {/* Status Badge */}
+            <WorkStatusBadge status={s.status} />
 
-              {s.status === "IN_WORK" ? (
-                <p className="text-sm mt-1">
-                  🔧 Current Work:{" "}
-                  <span className="font-medium">{s.currentJob}</span>
-                </p>
-              ) : (
-                <p className="text-sm mt-1 text-green-600">
-                  🟢 Available (Free)
-                </p>
-              )}
+            {/* Name and Service */}
+            <div className="mb-4">
+              <p className="text-xl font-semibold text-gray-900">{s.name}</p>
+              <p className="text-gray-500">{s.serviceType}</p>
             </div>
 
-            {/* Right Actions */}
-            <div className="flex items-center gap-3">
-              <WorkStatusBadge status={s.status} />
+            {/* Current Job / Availability */}
+            {s.status === "IN_WORK" ? (
+              <p className="text-gray-700 mb-4">
+                🔧 <span className="font-medium">Current Work:</span> {s.currentJob}
+              </p>
+            ) : (
+              <p className="text-green-600 font-medium mb-4">🟢 Available</p>
+            )}
 
+            {/* Action Buttons */}
+            <div className="flex gap-3">
               <button
-                onClick={() => handleView(s.name)}
-                className="px-3 py-1 text-sm bg-blue-100 text-blue-600 rounded cursor-pointer"
+                onClick={() => handleView(s)}
+                className="flex-1 py-2 px-4 text-white font-semibold bg-blue-600 rounded-xl hover:bg-blue-700 transition-colors shadow-md"
               >
                 View
               </button>
-
               <button
                 onClick={() => handleFire(s.name)}
-                className="px-3 py-1 text-sm bg-red-100 text-red-600 rounded cursor-pointer"
+                className="flex-1 py-2 px-4 text-white font-semibold bg-red-600 rounded-xl hover:bg-red-700 transition-colors shadow-md"
               >
                 Fire
               </button>
@@ -85,6 +91,36 @@ export default function ServiceMenPage() {
           </div>
         ))}
       </div>
+
+      {/* Modal */}
+      {selectedMan && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white rounded-2xl shadow-2xl w-11/12 md:w-1/2 lg:w-1/3 p-6 relative">
+            <h2 className="text-2xl font-bold mb-4">{selectedMan.name}</h2>
+
+            <div className="space-y-2 text-gray-700">
+              <p>
+                <span className="font-semibold">Service Type:</span> {selectedMan.serviceType}
+              </p>
+              <p>
+                <span className="font-semibold">Status:</span>{" "}
+                {selectedMan.status === "IN_WORK" ? "In Work" : "Free"}
+              </p>
+              <p>
+                <span className="font-semibold">Current Job:</span>{" "}
+                {selectedMan.currentJob ? selectedMan.currentJob : "No ongoing job"}
+              </p>
+            </div>
+
+            <button
+              onClick={handleClose}
+              className="mt-6 w-full py-2 bg-gray-200 rounded-xl hover:bg-gray-300 transition font-semibold"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -93,10 +129,10 @@ export default function ServiceMenPage() {
 function WorkStatusBadge({ status }: { status: string }) {
   return (
     <span
-      className={`px-3 py-1 rounded-full text-xs font-medium ${
+      className={`absolute top-4 right-4 px-3 py-1 rounded-full text-xs font-semibold ${
         status === "IN_WORK"
-          ? "bg-yellow-100 text-yellow-700"
-          : "bg-green-100 text-green-700"
+          ? "bg-yellow-200 text-yellow-800"
+          : "bg-green-200 text-green-800"
       }`}
     >
       {status === "IN_WORK" ? "In Work" : "Free"}
