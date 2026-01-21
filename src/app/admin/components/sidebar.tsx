@@ -1,61 +1,83 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-// Uncomment below if you have react-icons installed
-// import { FiHome, FiUsers, FiBox, FiTool, FiLayers, FiSettings, FiLogOut } from "react-icons/fi";
+import { usePathname, useRouter } from "next/navigation";
+import api from "../../../lib/api";
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
 
-  // Navigation items
+  const handleLogout = async () => {
+    try {
+      await api.post("/api/logout");
+    } catch {}
+    finally {
+      localStorage.clear();
+      router.push("/");
+    }
+  };
+
   const navItems = [
-    { href: "/admin/dashboard", label: "Dashboard" /*, icon: <FiHome /> */ },
-    { href: "/admin/users-page", label: "Users" /*, icon: <FiUsers /> */ },
-    { href: "/admin/vendors", label: "Vendors" /*, icon: <FiBox /> */ },
-    { href: "/admin/service-man", label: "Service Men" /*, icon: <FiTool /> */ },
-    { href: "/admin/categories", label: "Categories" /*, icon: <FiLayers /> */ },
-    { href: "/admin/settings", label: "Settings" /*, icon: <FiSettings /> */ },
+    { href: "/admin/dashboard", label: "Dashboards", section: "DASHBOARDS" },
+    { href: "/admin/users-page", label: "Users", section: "DASHBOARDS" },
+
+    { href: "/admin/service-man", label: "Service Man", section: "VENDORS" },
+    { href: "/admin/vendors", label: "Vendors", section: "VENDORS" },
+    { href: "/admin/products", label: "Products", section: "VENDORS" },
+    { href: "/admin/categories", label: "Categories", section: "VENDORS" },
   ];
 
   const isActive = (href: string) => pathname === href;
 
   return (
-    <aside className="w-64 min-h-screen bg-gradient-to-b from-blue-900 to-blue-800 text-white shadow-lg p-6 flex flex-col">
-      
-      {/* Logo / Title */}
-      <div className="mb-10 flex items-center gap-3">
-        <div className="bg-white rounded-full w-10 h-10 flex items-center justify-center text-blue-800 font-bold text-lg">
-          A
-        </div>
-        <h2 className="text-2xl font-bold tracking-wide">Admin Panel</h2>
+    <aside className="w-64 min-h-screen bg-[#0B1C2D] text-[#A9B7D0] flex flex-col">
+
+      {/* Logo */}
+      <div className="px-6 py-6 border-b border-white/10">
+        <h1 className="text-2xl font-bold text-white tracking-wide">
+          Home<span className="text-blue-400">Fixer</span>
+        </h1>
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 space-y-2">
-        {navItems.map(({ href, label }) => (
-          <Link
-            key={href}
-            href={href}
-            className={`block p-3 rounded-lg font-medium transition-all flex items-center gap-2
-              ${
-                isActive(href)
-                  ? "bg-white bg-opacity-20 text-blue-900 border-l-4 border-white pl-2"
-                  : "text-white hover:bg-blue-700"
-              }`}
-          >
-            {/* Optional icon if installed */}
-            {/* {icon && <span className="text-lg">{icon}</span>} */}
-            {label}
-          </Link>
+      {/* Menu */}
+      <nav className="flex-1 px-4 py-6 space-y-6 text-sm">
+
+        {["DASHBOARDS", "VENDORS"].map((section) => (
+          <div key={section}>
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-[#6C7A96]">
+              {section}
+            </p>
+
+            <div className="space-y-1">
+              {navItems
+                .filter((item) => item.section === section)
+                .map(({ href, label }) => (
+                  <Link
+                    key={href}
+                    href={href}
+                    className={`flex items-center justify-between px-4 py-2 rounded-md transition
+                      ${
+                        isActive(href)
+                          ? "bg-blue-600/20 text-white"
+                          : "hover:bg-white/5 hover:text-white"
+                      }`}
+                  >
+                    <span>{label}</span>
+                    <span className="text-xs opacity-60">▾</span>
+                  </Link>
+                ))}
+            </div>
+          </div>
         ))}
       </nav>
 
-      {/* Footer / Logout */}
-      <div className="mt-auto">
-        <button className="w-full p-3 rounded-lg bg-red-600 hover:bg-red-500 transition text-white font-medium flex items-center justify-center gap-2">
-          {/* Optional icon */}
-          {/* <FiLogOut /> */}
+      {/* Logout */}
+      <div className="px-6 py-4 border-t border-white/10">
+        <button
+          onClick={handleLogout}
+          className="w-full text-left px-4 py-2 rounded-md text-red-400 hover:bg-red-500/10 hover:text-red-300 transition"
+        >
           Logout
         </button>
       </div>

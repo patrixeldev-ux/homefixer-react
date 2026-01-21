@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import api from "../../../lib/api"; // your axios instance
+import api from "../../../lib/api";
 
 type Mode = "login" | "signup";
 
@@ -13,6 +13,7 @@ export default function AdminAuthPage() {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const [form, setForm] = useState({
     email: "",
@@ -23,9 +24,7 @@ export default function AdminAuthPage() {
     role: "admin",
   });
 
-  function handleChange(
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) {
+  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
   }
@@ -34,85 +33,54 @@ export default function AdminAuthPage() {
     e.preventDefault();
     setError("");
 
-    /* ---------------- STEP 1: SEND OTP ---------------- */
     if (step === 1) {
-      if (!form.email) {
-        setError("Email is required");
-        return;
-      }
-
+      if (!form.email) return setError("Email is required");
       setLoading(true);
       try {
         const endpoint =
           mode === "login"
             ? "/api/auth/login/send-otp"
             : "/api/auth/register/send-otp";
-
         const res = await api.post(endpoint, { email: form.email });
-
-        if (res.data.success) {
-          setStep(2);
-        }
-      } catch (err: any) {
-        if (err.response?.status === 404) {
-          setError("User not found. Please sign up.");
-        } else if (err.response?.status === 422 && mode === "signup") {
-          setError("Email already registered. Please login.");
-          setMode("login");
-          setStep(1);
-        } else {
-          setError("Network error");
-        }
+        if (res.data.success) setStep(2);
+      } catch {
+        setError("Network error");
       } finally {
         setLoading(false);
       }
       return;
     }
 
-    /* ---------------- STEP 2: VERIFY OTP ---------------- */
     if (step === 2) {
-      if (!form.otp) {
-        setError("OTP is required");
-        return;
-      }
-
+      if (!form.otp) return setError("OTP is required");
       setLoading(true);
       try {
         const endpoint =
           mode === "login"
             ? "/api/auth/login/verify"
             : "/api/auth/register/verify-otp";
-
         const res = await api.post(endpoint, {
           email: form.email,
           otp: form.otp,
         });
-
         if (res.data.success) {
           if (mode === "login") {
-            // Save token and user
             localStorage.setItem("token", res.data.token);
             localStorage.setItem("user", JSON.stringify(res.data.user));
             router.push("/admin/dashboard");
-          } else {
-            setStep(3); // move to signup final info
-          }
+          } else setStep(3);
         }
-      } catch (err: any) {
-        setError(err.response?.data?.message || "Invalid or expired OTP");
+      } catch {
+        setError("Invalid OTP");
       } finally {
         setLoading(false);
       }
       return;
     }
 
-    /* ---------------- STEP 3: COMPLETE SIGNUP ---------------- */
     if (step === 3) {
-      if (!form.name || !form.phone || !form.password) {
-        setError("Name, phone, and password are required");
-        return;
-      }
-
+      if (!form.name || !form.phone || !form.password)
+        return setError("All fields required");
       setLoading(true);
       try {
         const res = await api.post("/api/auth/register/complete", {
@@ -122,100 +90,29 @@ export default function AdminAuthPage() {
           password: form.password,
           role: "admin",
         });
-
-        if (res.data.success) {
-          localStorage.setItem("user", JSON.stringify(res.data.user));
-          router.push("/admin/dashboard");
-        }
-      } catch (err: any) {
-        setError(err.response?.data?.message || "Signup failed");
+        if (res.data.success) router.push("/admin/dashboard");
+      } catch {
+        setError("Signup failed");
       } finally {
         setLoading(false);
       }
     }
   }
 
-  const renderFields = () => {
-    if (step === 1)
-      return (
-        <input
-          type="email"
-          name="email"
-          placeholder="Email"
-          value={form.email}
-          onChange={handleChange}
-          style={styles.input}
-        />
-      );
-
-    if (step === 2)
-      return (
-        <input
-          type="text"
-          name="otp"
-          placeholder="Enter OTP"
-          value={form.otp}
-          onChange={handleChange}
-          style={styles.input}
-        />
-      );
-
-    if (step === 3 && mode === "signup")
-      return (
-        <>
-          <input
-            type="text"
-            name="name"
-            placeholder="Full Name"
-            value={form.name}
-            onChange={handleChange}
-            style={styles.input}
-          />
-          <input
-            type="text"
-            name="phone"
-            placeholder="Phone Number"
-            value={form.phone}
-            onChange={handleChange}
-            style={styles.input}
-          />
-          <input
-            type="password"
-            name="password"
-            placeholder="Set Password"
-            value={form.password}
-            onChange={handleChange}
-            style={styles.input}
-          />
-        </>
-      );
-  };
-
   return (
     <main style={styles.page}>
-      <div style={styles.card}>
+      <div style={styles.glassCard}>
+        {/* LOGO */}
+        <div style={styles.logo}>
+          <span style={styles.dIcon}>Home</span>Fixer
+        </div>
+
         <h2 style={styles.title}>
-          {mode === "login" ? "Admin Login" : "Admin Signup"} – Step {step}
+          {mode === "login" ? "Welcome Back!" : "Create Account"}
         </h2>
 
-        <form onSubmit={handleSubmit}>
-          {renderFields()}
-
-          {error && <p style={styles.error}>{error}</p>}
-
-          <button style={styles.btn} disabled={loading}>
-            {loading
-              ? "Please wait..."
-              : step < (mode === "login" ? 2 : 3)
-              ? "Next"
-              : mode === "login"
-              ? "Login"
-              : "Create Account"}
-          </button>
-        </form>
-
-        <p style={styles.text}>
-          {mode === "login" ? "No account? " : "Already have an account? "}
+        <p style={styles.subtitle}>
+          {mode === "login" ? "Don't have an account? " : "Already have one? "}
           <span
             style={styles.link}
             onClick={() => {
@@ -227,56 +124,167 @@ export default function AdminAuthPage() {
             {mode === "login" ? "Sign Up" : "Login"}
           </span>
         </p>
+
+        <form onSubmit={handleSubmit}>
+          {step === 1 && (
+            <input
+              style={styles.input}
+              name="email"
+              placeholder="Enter your email"
+              value={form.email}
+              onChange={handleChange}
+            />
+          )}
+
+          {step === 2 && (
+            <input
+              style={styles.input}
+              name="otp"
+              placeholder="Enter OTP"
+              value={form.otp}
+              onChange={handleChange}
+            />
+          )}
+
+          {step === 3 && mode === "signup" && (
+            <>
+              <input
+                style={styles.input}
+                name="name"
+                placeholder="Full Name"
+                value={form.name}
+                onChange={handleChange}
+              />
+              <input
+                style={styles.input}
+                name="phone"
+                placeholder="Phone Number"
+                value={form.phone}
+                onChange={handleChange}
+              />
+              <div style={{ position: "relative" }}>
+                <input
+                  style={styles.input}
+                  type={showPassword ? "text" : "password"}
+                  name="password"
+                  placeholder="Password"
+                  value={form.password}
+                  onChange={handleChange}
+                />
+                <span
+                  style={styles.eye}
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  👁️
+                </span>
+              </div>
+            </>
+          )}
+
+          {error && <p style={styles.error}>{error}</p>}
+
+          <button style={styles.button} disabled={loading}>
+            {loading
+              ? "Please wait..."
+              : step < (mode === "login" ? 2 : 3)
+              ? "Next"
+              : mode === "login"
+              ? "Sign In"
+              : "Create Account"}
+          </button>
+        </form>
       </div>
     </main>
   );
 }
 
 /* ---------------- STYLES ---------------- */
-const styles = {
+const styles: { [key: string]: React.CSSProperties } = {
+  /* 🌄 FULL SCREEN BACKGROUND IMAGE */
   page: {
     minHeight: "100vh",
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
-    background: "#f5f7fa",
+    backgroundImage:
+      "url('https://t3.ftcdn.net/jpg/06/65/51/18/360_F_665511841_0F5zKLnFoWoGMgswEVu77hfpcy3vGjlW.jpg')",
+    backgroundSize: "cover",
+    backgroundPosition: "center",
   },
-  card: {
-    width: 360,
-    padding: 28,
-    background: "#fff",
-    borderRadius: 16,
+
+  /* 🧊 GLASS FORM */
+  glassCard: {
+    width: 420,
+    minHeight: 620,
+    padding: 40,
+    borderRadius: 18,
+    background: "rgba(15, 23, 42, 0.45)",
+    backdropFilter: "blur(14px)",
+    WebkitBackdropFilter: "blur(14px)",
+    border: "1px solid rgba(255,255,255,0.15)",
+    boxShadow: "0 20px 40px rgba(0,0,0,0.4)",
+    color: "#fff",
   },
-  title: {
-    textAlign: "center" as const,
+
+  logo: {
+    fontSize: 32,
+    fontWeight: "bold",
     marginBottom: 20,
-    color: "#1E88E5",
   },
+
+  dIcon: {
+    background: "#4facfe",
+    padding: "0 8px",
+    borderRadius: 4,
+    marginRight: 6,
+  },
+
+  title: {
+    marginBottom: 6,
+  },
+
+  subtitle: {
+    color: "#e5e7eb",
+    marginBottom: 28,
+  },
+
+  link: {
+    fontWeight: "bold",
+    cursor: "pointer",
+  },
+
   input: {
     width: "100%",
-    padding: 12,
-    marginBottom: 14,
+    padding: 14,
+    marginBottom: 16,
     borderRadius: 10,
-    border: "1px solid #ccc",
-  },
-  btn: {
-    width: "100%",
-    padding: 12,
-    background: "#1E88E5",
+    border: "1px solid rgba(255,255,255,0.2)",
+    background: "rgba(255,255,255,0.12)",
     color: "#fff",
-    border: "none",
-    borderRadius: 12,
+    outline: "none",
   },
-  error: {
-    color: "red",
-    marginBottom: 10,
-  },
-  text: {
-    marginTop: 14,
-    textAlign: "center" as const,
-  },
-  link: {
-    color: "#1E88E5",
+
+  eye: {
+    position: "absolute",
+    right: 14,
+    top: 14,
     cursor: "pointer",
+  },
+
+  button: {
+    width: "100%",
+    padding: 14,
+    borderRadius: 10,
+    background: "#3b82f6",
+    border: "none",
+    color: "#fff",
+    fontWeight: "bold",
+    marginTop: 10,
+    cursor: "pointer",
+  },
+
+  error: {
+    color: "#fca5a5",
+    marginBottom: 10,
   },
 };

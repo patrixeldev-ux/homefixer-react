@@ -31,11 +31,6 @@ export default function CategoriesPage() {
     try {
       const res = await api.get("/api/admin/categories");
 
-      /**
-       * CHANGEABLE RESPONSE HANDLING
-       * - Some APIs return array directly
-       * - Some wrap inside { data: [...] }
-       */
       const rawCategories: any[] = Array.isArray(res.data)
         ? res.data
         : Array.isArray(res.data?.data)
@@ -78,14 +73,11 @@ export default function CategoriesPage() {
       };
 
       if (editingId) {
-        // UPDATE
         await api.put(`/api/admin/categories/${editingId}`, payload);
       } else {
-        // CREATE
         await api.post("/api/admin/categories", payload);
       }
 
-      // RESET FORM
       setName("");
       setIconUrl("");
       setType("SERVICE");
@@ -94,11 +86,7 @@ export default function CategoriesPage() {
       fetchCategories();
     } catch (err) {
       console.error("SAVE CATEGORY ERROR:", err);
-      setError(
-        editingId
-          ? "Failed to update category"
-          : "Failed to create category"
-      );
+      setError(editingId ? "Failed to update category" : "Failed to create category");
     } finally {
       setLoading(false);
     }
@@ -124,8 +112,7 @@ export default function CategoriesPage() {
       setCategories(prev => prev.filter(cat => cat.id !== id));
     } catch (err: any) {
       const message =
-        err?.response?.data?.message ||
-        "Cannot delete category with active services";
+        err?.response?.data?.message || "Cannot delete category with active services";
       alert(message);
     } finally {
       setLoading(false);
@@ -150,20 +137,20 @@ export default function CategoriesPage() {
             placeholder="Category Name"
             value={name}
             onChange={e => setName(e.target.value)}
-            className="p-3 border rounded-lg"
+            className="p-3 border rounded-lg focus:ring-2 focus:ring-blue-400"
           />
 
           <input
             placeholder="Icon URL (optional)"
             value={iconUrl}
             onChange={e => setIconUrl(e.target.value)}
-            className="p-3 border rounded-lg"
+            className="p-3 border rounded-lg focus:ring-2 focus:ring-blue-400"
           />
 
           <select
             value={type}
             onChange={e => setType(e.target.value as "SERVICE" | "PRODUCT")}
-            className="p-3 border rounded-lg"
+            className="p-3 border rounded-lg focus:ring-2 focus:ring-blue-400"
           >
             <option value="SERVICE">Service</option>
             <option value="PRODUCT">Product</option>
@@ -172,7 +159,7 @@ export default function CategoriesPage() {
           <button
             onClick={handleSubmit}
             disabled={loading}
-            className={`text-white rounded-lg font-semibold ${
+            className={`text-white rounded-lg font-semibold transition-all duration-300 ${
               editingId
                 ? "bg-green-600 hover:bg-green-700"
                 : "bg-blue-600 hover:bg-blue-700"
@@ -185,9 +172,9 @@ export default function CategoriesPage() {
         {error && <p className="mt-3 text-red-500">{error}</p>}
       </div>
 
-      {/* ---------- CATEGORY LIST ---------- */}
+      {/* ---------- CATEGORY LIST AS CARDS ---------- */}
       <div className="bg-white p-6 rounded-2xl shadow">
-        <h2 className="text-xl font-semibold mb-4">Existing Categories</h2>
+        <h2 className="text-xl font-semibold mb-6">Existing Categories</h2>
 
         {loading && <p className="text-gray-500">Loading...</p>}
 
@@ -195,30 +182,47 @@ export default function CategoriesPage() {
           <p className="text-gray-500">No categories found</p>
         )}
 
-        <div className="space-y-3">
+        <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {categories.map(cat => (
             <div
               key={cat.id}
-              className="flex justify-between items-center p-4 border rounded-lg hover:shadow"
+              className="bg-white border rounded-2xl shadow hover:shadow-xl transition-shadow duration-300 p-5 flex flex-col justify-between"
             >
-              <div>
+              {/* Icon */}
+              <div className="flex justify-center mb-4">
+                {cat.icon_url ? (
+                  <img
+                    src={cat.icon_url}
+                    alt={cat.name}
+                    className="h-16 w-16 object-contain"
+                  />
+                ) : (
+                  <div className="h-16 w-16 bg-gray-200 rounded-full flex items-center justify-center text-gray-400 text-xl">
+                    {cat.name.charAt(0)}
+                  </div>
+                )}
+              </div>
+
+              {/* Name & Info */}
+              <div className="text-center mb-4">
                 <p className="font-semibold text-lg">{cat.name}</p>
                 <p className="text-sm text-gray-500">
                   Type: {cat.type} | Services: {cat.serviceCount ?? 0}
                 </p>
               </div>
 
-              <div className="flex gap-3">
+              {/* Actions */}
+              <div className="flex justify-center gap-3">
                 <button
                   onClick={() => handleEdit(cat)}
-                  className="px-4 py-2 bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200"
+                  className="px-4 py-2 bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200 transition-colors"
                 >
                   Edit
                 </button>
 
                 <button
                   onClick={() => handleDelete(cat.id)}
-                  className="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200"
+                  className="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors"
                 >
                   Delete
                 </button>

@@ -1,5 +1,8 @@
 "use client";
 
+import React, { useState } from "react";
+import Link from "next/link";
+
 type BookingStatus =
   | "Pending"
   | "Accepted"
@@ -48,16 +51,15 @@ const bookings: Booking[] = [
 ];
 
 export default function MyBookingsPage() {
+  const [selectedBooking, setSelectedBooking] = useState<number | null>(null);
+  const [showModal, setShowModal] = useState(false);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-8">
       {/* Header */}
       <div className="mb-10">
-        <h1 className="text-3xl font-bold text-slate-900">
-          My Bookings
-        </h1>
-        <p className="text-slate-500 mt-1">
-          Track your services in real time
-        </p>
+        <h1 className="text-3xl font-bold text-slate-900">My Bookings</h1>
+        <p className="text-slate-500 mt-1">Track your services in real time</p>
       </div>
 
       {/* Booking Cards */}
@@ -95,7 +97,13 @@ export default function MyBookingsPage() {
                 <StatusPill status={b.status} />
                 <ProgressBar status={b.status} />
 
-                <button className="text-sm font-semibold text-blue-600 hover:underline">
+                <button
+                  className="text-sm font-semibold text-blue-600 hover:underline"
+                  onClick={() => {
+                    setSelectedBooking(b.id);
+                    setShowModal(true);
+                  }}
+                >
                   View Details →
                 </button>
               </div>
@@ -103,12 +111,45 @@ export default function MyBookingsPage() {
           </div>
         ))}
       </div>
+
+      {/* Modal for Booking Details */}
+      {showModal && selectedBooking && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full">
+            <h2 className="text-xl font-bold mb-4">Booking Details</h2>
+            {(() => {
+              const booking = bookings.find(b => b.id === selectedBooking);
+              return booking ? (
+                <div>
+                  <p><strong>Service:</strong> {booking.service}</p>
+                  <p><strong>Date:</strong> {booking.date}</p>
+                  <p><strong>Time:</strong> {booking.time}</p>
+                  <p><strong>Address:</strong> {booking.address}</p>
+                  <p><strong>Status:</strong> {booking.status}</p>
+                </div>
+              ) : null;
+            })()}
+            <div className="mt-4">
+              <Link href="/customer/maps">
+                <button className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 mr-2">
+                  Track Your Serviceman
+                </button>
+              </Link>
+              <button
+                className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400"
+                onClick={() => setShowModal(false)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 /* ---------- STATUS BADGE ---------- */
-
 function StatusPill({ status }: { status: BookingStatus }) {
   const styles: Record<BookingStatus, string> = {
     Pending: "bg-yellow-100 text-yellow-700",
@@ -128,7 +169,6 @@ function StatusPill({ status }: { status: BookingStatus }) {
 }
 
 /* ---------- PROGRESS BAR ---------- */
-
 function ProgressBar({ status }: { status: BookingStatus }) {
   const progress: Record<BookingStatus, number> = {
     Pending: 25,

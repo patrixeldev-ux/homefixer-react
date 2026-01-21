@@ -1,141 +1,127 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 
+/* ---------------- STATIC SERVICEMEN DATA ---------------- */
 interface ServiceMan {
+  id: number;
   name: string;
-  serviceType: string;
-  currentJob: string | null;
-  status: string;
+  email: string;
+  phone: string;
+  role: string;
+  created_at: string;
+  avatar_url?: string;
 }
 
-export default function ServiceMenPage() {
-  const router = useRouter();
+const staticServiceMen: ServiceMan[] = [
+  {
+    id: 1,
+    name: "Rajesh Kumar",
+    email: "rajesh@gmail.com",
+    phone: "+91 9123456780",
+    role: "servicemen",
+    created_at: "2026-01-03T09:30:00Z",
+    avatar_url: "https://randomuser.me/api/portraits/men/22.jpg",
+  },
+  {
+    id: 2,
+    name: "Priya Singh",
+    email: "priya@gmail.com",
+    phone: "+91 9123456781",
+    role: "servicemen",
+    created_at: "2026-01-06T14:15:00Z",
+    avatar_url: "https://randomuser.me/api/portraits/women/33.jpg",
+  },
+  {
+    id: 3,
+    name: "Amit Shah",
+    email: "amit@gmail.com",
+    phone: "+91 9123456782",
+    role: "servicemen",
+    created_at: "2026-01-09T11:00:00Z",
+    avatar_url: "https://randomuser.me/api/portraits/men/45.jpg",
+  },
+];
 
-  const [serviceMen] = useState<ServiceMan[]>([
-    {
-      name: "Rohit Sharma",
-      serviceType: "Electrician",
-      currentJob: "AC Wiring Repair",
-      status: "IN_WORK",
-    },
-    {
-      name: "Suresh Kumar",
-      serviceType: "Plumber",
-      currentJob: null,
-      status: "FREE",
-    },
-  ]);
+export default function ServiceManPage() {
+  const [serviceMen, setServiceMen] = useState<ServiceMan[]>(staticServiceMen);
 
-  const [selectedMan, setSelectedMan] = useState<ServiceMan | null>(null);
-
-  const handleView = (man: ServiceMan) => {
-    setSelectedMan(man); // open modal
+  const handleEdit = (id: number) => {
+    alert(`Edit serviceman with ID: ${id}`);
   };
 
-  const handleClose = () => setSelectedMan(null);
-
-  const handleFire = (name: string) => {
-    alert(`Fired ${name}`);
+  const handleBan = (id: number) => {
+    if (confirm("Are you sure you want to ban this serviceman?")) {
+      setServiceMen(serviceMen.filter((s) => s.id !== id));
+    }
   };
 
   return (
-    <div className="p-8 bg-gray-50 min-h-screen">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Service Men Dashboard</h1>
-        <p className="mt-2 text-gray-500">Monitor availability and current work of all service men.</p>
-      </div>
-
-      {/* Service Men Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {serviceMen.map((s, i) => (
-          <div
-            key={i}
-            className="bg-white rounded-2xl shadow-lg p-6 hover:shadow-2xl transition-shadow duration-300 relative border border-gray-100"
-          >
-            {/* Status Badge */}
-            <WorkStatusBadge status={s.status} />
-
-            {/* Name and Service */}
-            <div className="mb-4">
-              <p className="text-xl font-semibold text-gray-900">{s.name}</p>
-              <p className="text-gray-500">{s.serviceType}</p>
-            </div>
-
-            {/* Current Job / Availability */}
-            {s.status === "IN_WORK" ? (
-              <p className="text-gray-700 mb-4">
-                🔧 <span className="font-medium">Current Work:</span> {s.currentJob}
-              </p>
-            ) : (
-              <p className="text-green-600 font-medium mb-4">🟢 Available</p>
-            )}
-
-            {/* Action Buttons */}
-            <div className="flex gap-3">
-              <button
-                onClick={() => handleView(s)}
-                className="flex-1 py-2 px-4 text-white font-semibold bg-blue-600 rounded-xl hover:bg-blue-700 transition-colors shadow-md"
-              >
-                View
-              </button>
-              <button
-                onClick={() => handleFire(s.name)}
-                className="flex-1 py-2 px-4 text-white font-semibold bg-red-600 rounded-xl hover:bg-red-700 transition-colors shadow-md"
-              >
-                Fire
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Modal */}
-      {selectedMan && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-white rounded-2xl shadow-2xl w-11/12 md:w-1/2 lg:w-1/3 p-6 relative">
-            <h2 className="text-2xl font-bold mb-4">{selectedMan.name}</h2>
-
-            <div className="space-y-2 text-gray-700">
-              <p>
-                <span className="font-semibold">Service Type:</span> {selectedMan.serviceType}
-              </p>
-              <p>
-                <span className="font-semibold">Status:</span>{" "}
-                {selectedMan.status === "IN_WORK" ? "In Work" : "Free"}
-              </p>
-              <p>
-                <span className="font-semibold">Current Job:</span>{" "}
-                {selectedMan.currentJob ? selectedMan.currentJob : "No ongoing job"}
-              </p>
-            </div>
-
-            <button
-              onClick={handleClose}
-              className="mt-6 w-full py-2 bg-gray-200 rounded-xl hover:bg-gray-300 transition font-semibold"
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 p-4">
+      {serviceMen.map((sm) => (
+        <div
+          key={sm.id}
+          className="bg-white shadow rounded-lg p-4 flex flex-col items-start gap-2 hover:shadow-lg transition"
+        >
+          <img
+            src={sm.avatar_url || "/default-avatar.png"}
+            alt={sm.name}
+            className="w-16 h-16 rounded-full object-cover"
+          />
+          <h3 className="font-semibold text-lg">{sm.name}</h3>
+          <p className="text-sm text-gray-500 flex items-center gap-1">
+            <svg
+              className="w-4 h-4 text-gray-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
             >
-              Close
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M16 12h.01M12 12h.01M8 12h.01M21 12c0 4.418-4.03 8-9 8s-9-3.582-9-8 4.03-8 9-8 9 3.582 9 8z"
+              />
+            </svg>
+            {sm.email}
+          </p>
+          <p className="text-sm text-gray-500 flex items-center gap-1">
+            <svg
+              className="w-4 h-4 text-gray-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M3 5h2l1 5h13l1-5h2M16 7v6m-8-6v6m-4 4h16v2H4v-2z"
+              />
+            </svg>
+            {sm.phone}
+          </p>
+          <p className="text-sm text-gray-400">
+            Joined: {new Date(sm.created_at).toLocaleDateString()}
+          </p>
+          <div className="mt-2 flex gap-2">
+            <button
+              onClick={() => handleEdit(sm.id)}
+              className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600"
+            >
+              Edit
+            </button>
+            <button
+              onClick={() => handleBan(sm.id)}
+              className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
+            >
+              Ban
             </button>
           </div>
         </div>
-      )}
+      ))}
     </div>
-  );
-}
-
-/* Status Badge */
-function WorkStatusBadge({ status }: { status: string }) {
-  return (
-    <span
-      className={`absolute top-4 right-4 px-3 py-1 rounded-full text-xs font-semibold ${
-        status === "IN_WORK"
-          ? "bg-yellow-200 text-yellow-800"
-          : "bg-green-200 text-green-800"
-      }`}
-    >
-      {status === "IN_WORK" ? "In Work" : "Free"}
-    </span>
   );
 }

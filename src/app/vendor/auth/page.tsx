@@ -20,8 +20,7 @@ export default function VendorAuthPage() {
     otp: "",
     companyName: "",
     phone: "",
-    address: "",
-    password: "", // ✅ USER SETS PASSWORD
+    password: "",
     role: "vendor",
   });
 
@@ -29,18 +28,16 @@ export default function VendorAuthPage() {
     setMounted(true);
   }, []);
 
-  function handleChange(
-    e: React.ChangeEvent<HTMLInputElement>
-  ) {
+  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
+    setForm((p) => ({ ...p, [name]: value }));
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
 
-    /* ---------- STEP 1: SEND OTP ---------- */
+    /* ---------- STEP 1 ---------- */
     if (step === 1) {
       if (!form.email) return setError("Email is required");
 
@@ -53,23 +50,15 @@ export default function VendorAuthPage() {
 
         await api.post(endpoint, { email: form.email });
         setStep(2);
-      } catch (err: any) {
-        if (err.response?.status === 404) {
-          setError("User not found. Please sign up.");
-        } else if (err.response?.status === 422 && mode === "signup") {
-          setError("Email already registered. Please login.");
-          setMode("login");
-          setStep(1);
-        } else {
-          setError("Network error");
-        }
+      } catch {
+        setError("Network error");
       } finally {
         setLoading(false);
       }
       return;
     }
 
-    /* ---------- STEP 2: VERIFY OTP ---------- */
+    /* ---------- STEP 2 ---------- */
     if (step === 2) {
       if (!form.otp) return setError("OTP is required");
 
@@ -102,11 +91,10 @@ export default function VendorAuthPage() {
       return;
     }
 
-    /* ---------- STEP 3: COMPLETE REGISTRATION ---------- */
+    /* ---------- STEP 3 ---------- */
     if (step === 3) {
-      if (!form.companyName || !form.phone || !form.password) {
+      if (!form.companyName || !form.phone || !form.password)
         return setError("All fields are required");
-      }
 
       setLoading(true);
       try {
@@ -121,159 +109,186 @@ export default function VendorAuthPage() {
         if (res.data.success) {
           router.push("/vendor/dashboard");
         }
-      } catch (err: any) {
-        setError(err.response?.data?.message || "Registration failed");
+      } catch {
+        setError("Registration failed");
       } finally {
         setLoading(false);
       }
     }
   }
 
-  const renderFields = () => {
-    if (step === 1)
-      return (
-        <input
-          name="email"
-          type="email"
-          placeholder="Email"
-          value={form.email}
-          onChange={handleChange}
-          style={styles.input}
-        />
-      );
-
-    if (step === 2)
-      return (
-        <input
-          name="otp"
-          placeholder="Enter OTP"
-          value={form.otp}
-          onChange={handleChange}
-          style={styles.input}
-        />
-      );
-
-    if (step === 3 && mode === "signup")
-      return (
-        <>
-          <input
-            name="companyName"
-            placeholder="Company Name"
-            value={form.companyName}
-            onChange={handleChange}
-            style={styles.input}
-          />
-          <input
-            name="phone"
-            placeholder="Phone Number"
-            value={form.phone}
-            onChange={handleChange}
-            style={styles.input}
-          />
-          <input
-            type="password"
-            name="password"
-            placeholder="Create Password"
-            value={form.password}
-            onChange={handleChange}
-            style={styles.input}
-          />
-        </>
-      );
-  };
-
   if (!mounted) return null;
 
   return (
     <main style={styles.page}>
-      <div style={styles.card}>
+      <div style={styles.glassCard}>
+        {/* LOGO */}
+        <div style={styles.logo}>
+          <span style={styles.badge}>V</span>endor
+        </div>
+
         <h2 style={styles.title}>
-          {mode === "login"
-            ? `Vendor Login - Step ${step}`
-            : `Vendor Signup - Step ${step}`}
+          {mode === "login" ? "Welcome Back!" : "Register Your Business"}
         </h2>
 
-        <form onSubmit={handleSubmit}>
-          {renderFields()}
-          {error && <p style={styles.error}>{error}</p>}
-
-          <button style={styles.btn} disabled={loading}>
-            {loading ? "Please wait..." : step < 3 ? "Next" : "Create Account"}
-          </button>
-        </form>
-
-        <p style={styles.text}>
-          {mode === "login" ? "No account? " : "Already have an account? "}
+        <p style={styles.subtitle}>
+          {mode === "login" ? "New vendor? " : "Already registered? "}
           <span
             style={styles.link}
             onClick={() => {
               setMode(mode === "login" ? "signup" : "login");
               setStep(1);
               setError("");
-              setForm({
-                email: "",
-                otp: "",
-                companyName: "",
-                phone: "",
-                address: "",
-                password: "",
-                role: "vendor",
-              });
             }}
           >
-            {mode === "login" ? "Sign up" : "Login"}
+            {mode === "login" ? "Create account" : "Login"}
           </span>
         </p>
+
+        <form onSubmit={handleSubmit}>
+          {step === 1 && (
+            <input
+              style={styles.input}
+              name="email"
+              placeholder="Business email"
+              value={form.email}
+              onChange={handleChange}
+            />
+          )}
+
+          {step === 2 && (
+            <input
+              style={styles.input}
+              name="otp"
+              placeholder="Enter OTP"
+              value={form.otp}
+              onChange={handleChange}
+            />
+          )}
+
+          {step === 3 && mode === "signup" && (
+            <>
+              <input
+                style={styles.input}
+                name="companyName"
+                placeholder="Company name"
+                value={form.companyName}
+                onChange={handleChange}
+              />
+              <input
+                style={styles.input}
+                name="phone"
+                placeholder="Phone number"
+                value={form.phone}
+                onChange={handleChange}
+              />
+              <input
+                style={styles.input}
+                type="password"
+                name="password"
+                placeholder="Create password"
+                value={form.password}
+                onChange={handleChange}
+              />
+            </>
+          )}
+
+          {error && <p style={styles.error}>{error}</p>}
+
+          <button style={styles.button} disabled={loading}>
+            {loading
+              ? "Please wait..."
+              : step < (mode === "login" ? 2 : 3)
+              ? "Next"
+              : mode === "login"
+              ? "Login"
+              : "Create Account"}
+          </button>
+        </form>
       </div>
     </main>
   );
 }
 
-/* ---------- STYLES ---------- */
-const styles = {
+/* ---------------- STYLES ---------------- */
+
+const styles: { [key: string]: React.CSSProperties } = {
   page: {
     minHeight: "100vh",
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
-    background: "#f5f7fa",
+    backgroundImage:
+      "url('https://t3.ftcdn.net/jpg/06/65/51/18/360_F_665511841_0F5zKLnFoWoGMgswEVu77hfpcy3vGjlW.jpg')",
+    backgroundSize: "cover",
+    backgroundPosition: "center",
   },
-  card: {
-    width: 360,
-    padding: 28,
-    background: "#fff",
-    borderRadius: 16,
+
+  glassCard: {
+    width: 430,
+    minHeight: 600,
+    padding: 40,
+    borderRadius: 18,
+    background: "rgba(15, 23, 42, 0.55)",
+    backdropFilter: "blur(18px)",
+    WebkitBackdropFilter: "blur(18px)",
+    border: "1px solid rgba(255,255,255,0.15)",
+    boxShadow: "0 25px 45px rgba(0,0,0,0.45)",
+    color: "#fff",
   },
+
+  logo: {
+    fontSize: 34,
+    fontWeight: "bold",
+    marginBottom: 18,
+  },
+
+  badge: {
+    background: "#f59e0b",
+    padding: "0 10px",
+    borderRadius: 4,
+    marginRight: 6,
+  },
+
   title: {
-    textAlign: "center" as const,
-    marginBottom: 20,
-    color: "#1E88E5",
+    marginBottom: 6,
   },
+
+  subtitle: {
+    color: "#e5e7eb",
+    marginBottom: 28,
+  },
+
+  link: {
+    fontWeight: "bold",
+    cursor: "pointer",
+  },
+
   input: {
     width: "100%",
-    padding: 12,
-    marginBottom: 14,
+    padding: 14,
+    marginBottom: 16,
     borderRadius: 10,
-    border: "1px solid #ccc",
-  },
-  btn: {
-    width: "100%",
-    padding: 12,
-    background: "#1E88E5",
+    border: "1px solid rgba(255,255,255,0.2)",
+    background: "rgba(255,255,255,0.12)",
     color: "#fff",
+    outline: "none",
+  },
+
+  button: {
+    width: "100%",
+    padding: 14,
+    borderRadius: 10,
+    background: "#f59e0b",
     border: "none",
-    borderRadius: 12,
-  },
-  error: {
-    color: "red",
-    marginBottom: 10,
-  },
-  text: {
-    marginTop: 14,
-    textAlign: "center" as const,
-  },
-  link: {
-    color: "#1E88E5",
+    color: "#fff",
+    fontWeight: "bold",
+    marginTop: 12,
     cursor: "pointer",
+  },
+
+  error: {
+    color: "#fca5a5",
+    marginBottom: 10,
   },
 };
