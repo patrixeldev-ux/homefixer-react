@@ -1,28 +1,52 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 export default function Navbar() {
   const pathname = usePathname();
 
-  // ❌ Hide navbar on admin routes
-  if (pathname.startsWith("/admin")) {
-    return null;
-  }
+  if (pathname.startsWith("/admin")) return null;
 
   return (
-    <nav className="flex justify-between items-center px-8 py-4 bg-white rounded-b-2xl shadow-[0_8px_20px_rgba(0,0,0,0.06)]">
-      <h1 className="text-2xl font-semibold text-[#1E88E5] tracking-wide">
-        HomeFixer
-      </h1>
+    <nav className="sticky top-0 z-50 border-b border-white/60 bg-white/90 px-6 py-3 shadow-[0_4px_24px_rgba(15,23,42,0.07)] backdrop-blur-xl md:px-8">
+      <div className="flex items-center justify-between w-full">
 
-      <Link
-        href="/choose-role"
-        className="px-4 py-2 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 transition"
-      >
-        Coming Soon
-      </Link>
+        {/* Logo */}
+        <Link
+          href="/"
+          className="group inline-flex items-center"
+        >
+          <Image
+            src="/logo.jpeg"
+            alt="HomeFixer"
+            width={180}
+            height={56}
+            priority
+            className="h-14 w-auto object-contain transition-transform duration-300 group-hover:scale-[1.02] md:h-18"
+          />
+        </Link>
+
+        {/* Buttons */}
+        <div className="flex items-center gap-3">
+          {/* Login */}
+          <Link
+            href="/choose-role?mode=login"
+            className="rounded-full border border-[#1E88E5] px-5 py-2.5 text-sm font-semibold text-[#1E88E5] transition-all duration-300 hover:bg-blue-50 hover:scale-105"
+          >
+            Login
+          </Link>
+
+          {/* Register */}
+           <Link
+            href="/choose-role?mode=register"
+            className="rounded-full border border-[#1E88E5] px-5 py-2.5 text-sm font-semibold text-[#1E88E5] transition-all duration-300 hover:bg-blue-50 hover:scale-105"
+          >
+            Register
+          </Link>
+        </div>
+      </div>
     </nav>
   );
 }

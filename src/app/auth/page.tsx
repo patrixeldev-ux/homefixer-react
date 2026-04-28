@@ -2,9 +2,18 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import api from "../../../lib/api";
+import api from "../../lib/api";
 
 type Mode = "login" | "signup";
+
+type ApiError = {
+  response?: {
+    data?: {
+      detail?: string;
+      message?: string;
+    } | string;
+  };
+};
 
 export default function CustomerAuthPage() {
   const router = useRouter();
@@ -20,7 +29,7 @@ export default function CustomerAuthPage() {
     name: "",
     phone: "",
     password: "",
-    role: "customer",
+    role: "CUSTOMER",
   });
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -34,20 +43,34 @@ export default function CustomerAuthPage() {
 
     /* -------- STEP 1 -------- */
     if (step === 1) {
-      if (!form.email) return setError("Email is required");
+      if (!form.email || !form.email.includes("@")) {
+          return setError("Valid email is required");
+          }
 
       setLoading(true);
+      console.log("Sending:", { email: form.email });
       try {
         const endpoint =
           mode === "login"
-            ? "/api/auth/login/send-otp"
-            : "/api/auth/register/send-otp";
+            ? "/api/auth/login/send-otp/"
+            : "/api/auth/register/send-otp/";
 
-        const res = await api.post(endpoint, { email: form.email });
-        if (res.data.success) setStep(2);
-      } catch {
-        setError("Network error");
-      } finally {
+        await api.post(endpoint, { email: form.email });
+        setStep(2);
+      } catch (err: unknown) {
+            const error = err as ApiError;
+            console.log("ERROR:", error.response?.data);
+            setError(
+              (typeof error.response?.data === "object" &&
+                error.response?.data &&
+                "message" in error.response.data &&
+                typeof error.response.data.message === "string" &&
+                error.response.data.message) ||
+              JSON.stringify(error.response?.data) ||
+              "Something went wrong"
+            );
+        }
+        finally {
         setLoading(false);
       }
       return;
@@ -61,30 +84,47 @@ export default function CustomerAuthPage() {
       try {
         const endpoint =
           mode === "login"
-            ? "/api/auth/login/verify"
-            : "/api/auth/register/verify-otp";
+            ? "/api/auth/login/verify-otp/"
+            : "/api/auth/register/verify-otp/";
 
         const res = await api.post(endpoint, {
           email: form.email,
           otp: form.otp,
         });
 
-        if (res.data.success) {
+        if (res.status === 200)  {
           if (mode === "login") {
-            localStorage.setItem("token", res.data.token);
-            localStorage.setItem("user", JSON.stringify(res.data.user));
+            localStorage.setItem("accessToken", res.data.tokens.access);
+            localStorage.setItem("refreshToken", res.data.tokens.refresh);
+            localStorage.setItem("role", res.data.role);
+            localStorage.setItem(
+              "role",
+              String(res.data.user?.role || "CUSTOMER").toUpperCase()
+            );
+
             router.push("/customer/dashboard");
           } else {
             setStep(3);
           }
         }
-      } catch {
-        setError("Invalid or expired OTP");
+      } catch (err: unknown) {
+        const error = err as ApiError;
+        console.log("VERIFY ERROR:", error.response?.data);
+        setError(
+          (typeof error.response?.data === "object" &&
+            error.response?.data &&
+            "detail" in error.response.data &&
+            typeof error.response.data.detail === "string" &&
+            error.response.data.detail) ||
+            "Invalid or expired OTP"
+        );
       } finally {
         setLoading(false);
       }
       return;
     }
+
+  console.log("Submitting register:", form);
 
     /* -------- STEP 3 -------- */
     if (step === 3) {
@@ -93,19 +133,34 @@ export default function CustomerAuthPage() {
 
       setLoading(true);
       try {
-        const res = await api.post("/api/auth/register/complete", {
+        const res = await api.post("/api/auth/register/complete/", {
           email: form.email,
           name: form.name,
           phone: form.phone,
           password: form.password,
-          role: "customer",
+          role: "CUSTOMER",
         });
 
         if (res.data.success) {
-          router.push("/customer/booking");
+          // ✅ Save tokens on registration too
+          localStorage.setItem("accessToken", res.data.tokens.access);
+          localStorage.setItem("refreshToken", res.data.tokens.refresh);
+          localStorage.setItem("role", "CUSTOMER");
+          router.push("/customer/dashboard/");
         }
-      } catch {
-        setError("Registration failed");
+      } catch (err: unknown) {
+        const error = err as ApiError;
+        console.log("REGISTER ERROR:", error.response?.data);
+        setError(
+          (typeof error.response?.data === "object" &&
+            error.response?.data &&
+            "detail" in error.response.data &&
+            typeof error.response.data.detail === "string" &&
+            error.response.data.detail) ||
+          JSON.stringify(error.response?.data) ||
+          "Registration failed"
+        );
+
       } finally {
         setLoading(false);
       }

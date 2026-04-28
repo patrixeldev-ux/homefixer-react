@@ -1,102 +1,148 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 
-export default function ChooseRole() {
-  const router = useRouter();
+function ChooseRoleContent() {
+  const router      = useRouter();
+  const searchParams = useSearchParams();
+  const mode        = searchParams.get("mode") === "login" ? "login" : "register";
 
-  const handleRoleSelect = (role: string) => {
-    if (role === "customer") router.push("/customer/auth");
-    if (role === "vendor") router.push("/vendor/auth");
-    if (role === "service-man") router.push("/service-man/auth");
-    if (role === "admin") router.push("/admin/login");
+  const isLogin = mode === "login";
+
+  const roles = [
+    {
+      key:     "customer",
+      label:   "Customer",
+      desc:    "Book verified professionals for any home service, instantly.",
+      icon:    "🏠",
+      color:   "blue",
+      loginPath:    "/auth",
+      registerPath: "/auth",
+    },
+    {
+      key:     "vendor",
+      label:   "Vendor",
+      desc:    "List your store, supply materials, and grow your business.",
+      icon:    "🏪",
+      color:   "amber",
+      loginPath:    "/vendor/auth",
+      registerPath: "/vendor/auth",
+    },
+    {
+      key:     "service-man",
+      label:   "Serviceman",
+      desc:    "Accept jobs, earn money, and build your reputation.",
+      icon:    "🔧",
+      color:   "green",
+      loginPath:    "/service-man/auth",
+      registerPath: "/service-man/auth",
+    },
+  ];
+
+  const colorMap: Record<string, { bg: string; icon: string; btn: string; ring: string }> = {
+    blue:  { bg: "bg-blue-50",  icon: "text-blue-600",  btn: "bg-blue-600 hover:bg-blue-700",  ring: "ring-blue-200" },
+    amber: { bg: "bg-amber-50", icon: "text-amber-600", btn: "bg-amber-600 hover:bg-amber-700",ring: "ring-amber-200" },
+    green: { bg: "bg-green-50", icon: "text-green-600", btn: "bg-green-600 hover:bg-green-700",ring: "ring-green-200" },
+  };
+
+  const handleSelect = (role: typeof roles[0]) => {
+    router.push(isLogin ? role.loginPath : role.registerPath);
+  };
+
+  const toggleMode = () => {
+    router.push(isLogin ? "/choose-role?mode=register" : "/choose-role?mode=login");
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center px-4">
-      <div className="w-full max-w-6xl">
-        {/* Header */}
-        <div className="text-center mb-14">
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-            Choose Your Role
-          </h1>
-          <p className="text-lg text-gray-600">
-            Select how you'd like to use HomeFixer
-          </p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/40 to-indigo-50 flex flex-col items-center justify-center px-4 py-16">
+
+      {/* Header */}
+      <div className="text-center mb-12">
+        {/* Mode toggle pill */}
+        <div className="inline-flex items-center bg-white border border-gray-200 rounded-full p-1 mb-8 shadow-sm">
+          <button
+            onClick={() => router.push("/choose-role?mode=login")}
+            className={`px-6 py-2 rounded-full text-sm font-semibold transition-all duration-200 ${
+              isLogin
+                ? "bg-blue-600 text-white shadow-sm"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            Login
+          </button>
+          <button
+            onClick={() => router.push("/choose-role?mode=register")}
+            className={`px-6 py-2 rounded-full text-sm font-semibold transition-all duration-200 ${
+              !isLogin
+                ? "bg-blue-600 text-white shadow-sm"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            Register
+          </button>
         </div>
 
-        {/* Role Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 place-items-center mb-14">
-          
-          {/* Customer */}
-          <div
-            onClick={() => handleRoleSelect("customer")}
-            className="w-full max-w-sm bg-white rounded-2xl shadow-lg p-8 cursor-pointer transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl"
-          >
-            <div className="flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 mb-6">
-              <svg className="w-8 h-8 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M10.5 1.5H3.75A2.25 2.25 0 001.5 3.75v12.5A2.25 2.25 0 003.75 18.5h12.5a2.25 2.25 0 002.25-2.25V9.5m-15-4h12m-12 3h12m-12 3h12M15 1.5v3m0 2v3" />
-              </svg>
-            </div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-3">Customer</h3>
-            <p className="text-gray-600 mb-6">
-              Browse and book services from verified vendors. Get your home fixed by professionals.
-            </p>
-            <button className="w-full bg-blue-600 text-white py-2 rounded-lg font-semibold hover:bg-blue-700 transition">
-              Continue as Customer
-            </button>
-          </div>
-
-          {/* Vendor */}
-          <div
-            onClick={() => handleRoleSelect("vendor")}
-            className="w-full max-w-sm bg-white rounded-2xl shadow-lg p-8 cursor-pointer transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl"
-          >
-            <div className="flex items-center justify-center w-16 h-16 rounded-full bg-amber-100 mb-6">
-              <svg className="w-8 h-8 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-              </svg>
-            </div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-3">Vendor</h3>
-            <p className="text-gray-600 mb-6">
-              Post your services and connect with customers. Grow your business and manage bookings.
-            </p>
-            <button className="w-full bg-amber-600 text-white py-2 rounded-lg font-semibold hover:bg-amber-700 transition">
-              Continue as Vendor
-            </button>
-          </div>
-
-          {/* Service Man */}
-          <div
-            onClick={() => handleRoleSelect("service-man")}
-            className="w-full max-w-sm bg-white rounded-2xl shadow-lg p-8 cursor-pointer transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl"
-          >
-            <div className="flex items-center justify-center w-16 h-16 rounded-full bg-green-100 mb-6">
-              <svg className="w-8 h-8 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M10.5 1.5H3.75A2.25 2.25 0 001.5 3.75v12.5A2.25 2.25 0 003.75 18.5h12.5a2.25 2.25 0 002.25-2.25V9.5m-15-4h12m-12 3h12m-12 3h12M15 1.5v3m0 2v3" />
-              </svg>
-            </div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-3">Service Man</h3>
-            <p className="text-gray-600 mb-6">
-              Accept service requests and complete jobs. Build your reputation and earn money.
-            </p>
-            <button className="w-full bg-green-600 text-white py-2 rounded-lg font-semibold hover:bg-green-700 transition">
-              Continue as Service Man
-            </button>
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className="text-center">
-          <p className="text-gray-600">
-            Already have an account?{" "}
-            <Link href="/" className="text-blue-600 font-semibold hover:underline">
-              Go Home
-            </Link>
-          </p>
-        </div>
+        <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-3">
+          {isLogin ? "Welcome back" : "Join HomeFixer"}
+        </h1>
+        <p className="text-gray-900 text-lg">
+          {isLogin
+            ? "Select your role to continue to your dashboard"
+            : "Choose how you'd like to use HomeFixer"
+          }
+        </p>
       </div>
+
+      {/* Role cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 w-full max-w-4xl mb-10">
+        {roles.map((role) => {
+          const c = colorMap[role.color];
+          return (
+            <button
+              key={role.key}
+              onClick={() => handleSelect(role)}
+              className={`group relative bg-white rounded-2xl border border-gray-100 shadow-sm p-7 text-left
+                transition-all duration-300 hover:-translate-y-2 hover:shadow-xl hover:ring-4 ${c.ring}
+                focus:outline-none`}
+            >
+              {/* Top accent bar */}
+              <div className={`absolute top-0 left-0 right-0 h-1 rounded-t-2xl ${c.btn.split(" ")[0]}`} />
+
+              {/* Icon */}
+              <div className={`w-14 h-14 ${c.bg} rounded-2xl flex items-center justify-center text-2xl mb-5 transition-transform duration-300 group-hover:scale-110`}>
+                {role.icon}
+              </div>
+
+              <h3 className="text-xl font-bold text-gray-900 mb-2">{role.label}</h3>
+              <p className="text-gray-900 text-sm leading-relaxed mb-6">{role.desc}</p>
+
+              <div className={`w-full ${c.btn} text-white py-2.5 rounded-xl text-sm font-bold text-center transition-colors`}>
+                {isLogin ? `Login as ${role.label}` : `Register as ${role.label}`}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Toggle CTA */}
+      <p className="text-gray-900 text-sm">
+        {isLogin ? "Don't have an account? " : "Already have an account? "}
+        <button
+          onClick={toggleMode}
+          className="text-sky-600 font-semibold hover:underline"
+        >
+          {isLogin ? "Register here" : "Login here"}
+        </button>
+      </p>
     </div>
+  );
+}
+
+export default function ChooseRole() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+      <ChooseRoleContent />
+    </Suspense>
   );
 }

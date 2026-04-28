@@ -1,29 +1,42 @@
-// lib/api.ts
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "https://homefixer.patrixel.com",
-  headers: {
-    "Content-Type": "application/json",
-    Accept: "application/json",
-  },
+  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000",
+  headers: { "Content-Type": "application/json" },
 });
 
-/* 🔑 ADD THIS INTERCEPTOR */
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem("token");
+api.interceptors.request.use((config) => {
+  // ✅ Guard: localStorage only exists in browser
+  if (typeof window !== "undefined") {
+    const token = localStorage.getItem("accessToken");
+    if (token) config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
 
-    // Exclude auth routes from adding Authorization header
-    const isAuthRoute = config.url?.startsWith('/api/auth/login') || config.url?.startsWith('/api/auth/register');
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    // ✅ Guard: window only exists in browser
+    if (typeof window !== "undefined" && error.response?.status === 401) {
+      const currentPath = window.location.pathname;
+      const isAuthPage =
+        currentPath === "/auth" ||
+        currentPath === "/service-man" ||
+        currentPath === "/vendor" ||
+        currentPath.startsWith("/service-man/auth") ||
+        currentPath.startsWith("/vendor/auth");
 
-    if (token && !isAuthRoute) {
-      config.headers.Authorization = `Bearer ${token}`;
+      if (!isAuthPage) {
+        const role = localStorage.getItem("role");
+        localStorage.clear();
+        if (role === "SERVICEMAN") window.location.href = "/service-man";
+        else if (role === "VENDOR") window.location.href = "/vendor";
+        else window.location.href = "/auth";
+      }
     }
-
-    return config;
-  },
-  (error) => Promise.reject(error)
+    return Promise.reject(error);
+  }
 );
 
 export default api;

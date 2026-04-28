@@ -13,6 +13,19 @@ import {
 } from "react-icons/fi";
 import api from "../../../lib/api";
 
+/* ✅ LOGO COMPONENT (INLINE) */
+function Logo() {
+  return (
+    <div className="flex items-center gap-2">
+      <img
+        src="/logo.jpeg"
+        alt="HomeFixer"
+        className="h-20 w-auto object-contain"
+      />
+    </div>
+  );
+}
+
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
@@ -40,11 +53,10 @@ export default function Sidebar() {
 
   return (
     <aside className="w-64 min-h-screen bg-[#0B1C2D] text-[#A9B7D0] flex flex-col">
-      {/* Logo */}
+      
+      {/* 🔥 LOGO (UPDATED) */}
       <div className="px-6 py-6 border-b border-white/10">
-        <h1 className="text-2xl font-bold text-white tracking-wide">
-          Home<span className="text-blue-400">Fixer</span>
-        </h1>
+        <Logo />
       </div>
 
       {/* Menu */}

@@ -10,7 +10,7 @@ export default function HeroSection() {
 
   return (
     <section
-      className="relative min-h-[90vh] flex items-center justify-center text-center px-6"
+      className="relative flex min-h-[90vh] items-center justify-center overflow-hidden px-6 py-20 text-center"
       style={{
         backgroundImage:
           "url('https://images.unsplash.com/photo-1581578731548-c64695cc6952')",
@@ -18,37 +18,45 @@ export default function HeroSection() {
         backgroundPosition: "center",
       }}
     >
-      {/* Dark overlay */}
-      <div className="absolute inset-0 bg-gradient-to-br from-[#1A73E8]/90 to-[#1E88E5]/70" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.18),_transparent_32%),linear-gradient(135deg,rgba(11,50,118,0.9),rgba(30,136,229,0.76)_58%,rgba(99,102,241,0.76))]" />
+      <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-slate-950/20 to-transparent" />
 
-      {/* Glass Card */}
-      <div className="relative max-w-4xl backdrop-blur-xl bg-white/15 border border-white/20 rounded-3xl p-10 shadow-2xl">
-        <h1 className="text-4xl md:text-6xl font-extrabold text-white leading-tight">
-          Premium Home Services <br />
-          <span className="text-[#FFC107]">At Your Doorstep</span>
-        </h1>
+      <div className="relative mx-auto w-full max-w-5xl">
+        <div className="mx-auto max-w-4xl rounded-[36px] border border-white/25 bg-white/18 p-10 shadow-[0_30px_90px_rgba(15,23,42,0.28)] backdrop-blur-2xl transition-all duration-300 md:p-14">
+          <div className="mx-auto max-w-3xl">
+            <p className="mb-5 inline-flex rounded-full border border-white/30 bg-white/12 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.28em] text-white/90">
+              Trusted Home Care
+            </p>
 
-        <p className="mt-6 text-lg text-blue-100 max-w-2xl mx-auto">
-          Electricians, plumbers, cleaning & appliance repair — verified professionals you can trust.
-        </p>
+            <h1 className="text-4xl font-bold leading-[1.05] tracking-tight text-white md:text-5xl lg:text-6xl">
+              Premium Home Services
+              <span className="mt-2 block bg-gradient-to-r from-[#FFD54F] via-[#FFC107] to-[#FFB300] bg-clip-text text-transparent">
+                At Your Doorstep
+              </span>
+            </h1>
 
-        <div className="mt-10 flex flex-wrap justify-center gap-4">
-          
-          {/* ✅ Book → Customer Login */}
-          <Link
-            href="/customer/auth"
-            className="px-8 py-3 bg-[#FFC107] text-[#212121] font-semibold rounded-full shadow-xl hover:scale-105 transition"
-          >
-            Book a Service
-          </Link>
+            <p className="mx-auto mt-6 max-w-2xl text-lg font-medium leading-8 text-gray-900 md:text-xl">
+              Electricians, plumbers, cleaning and appliance repair from
+              verified professionals you can trust for every corner of your
+              home.
+            </p>
 
-          {/* ✅ View Services → Scroll */}
-          <button
-            onClick={handleViewServices}
-            className="px-8 py-3 border-2 border-white text-white rounded-full hover:bg-white hover:text-[#1E88E5] transition"
-          >
-            View Services
-          </button>
+            <div className="mt-10 flex flex-wrap justify-center gap-4">
+              <Link
+                href="/auth"
+                className="rounded-full border border-white/70 bg-white/5 px-8 py-3.5 text-base font-semibold text-yellow-200 shadow-[0_10px_30px_rgba(255,255,255,0.1)] transition-all duration-300 hover:scale-105 hover:bg-white hover:text-[#1E88E5]"
+              >
+                Book a Service
+              </Link>
+
+              <button
+                onClick={handleViewServices}
+                className="rounded-full border border-white/70 bg-white/5 px-8 py-3.5 text-base font-semibold text-yellow-200 shadow-[0_10px_30px_rgba(255,255,255,0.1)] transition-all duration-300 hover:scale-105 hover:bg-white hover:text-[#1E88E5]"
+              >
+                View Services
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </section>
