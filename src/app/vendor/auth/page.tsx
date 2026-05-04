@@ -154,7 +154,7 @@ export default function VendorAuthPage() {
 const styles: { [key: string]: React.CSSProperties } = {
   page: { minHeight: "100vh", display: "flex", justifyContent: "center", alignItems: "center",
     backgroundImage: "url('https://t3.ftcdn.net/jpg/06/65/51/18/360_F_665511841_0F5zKLnFoWoGMgswEVu77hfpcy3vGjlW.jpg')",
-    backgroundSize: "cover", backgroundPosition: "center" },
+    backgroundSize: "cover", backgroundPosition: "center", paddingTop: 72 },
   glassCard: { width: 430, minHeight: 560, padding: 40, borderRadius: 18,
     background: "rgba(15,23,42,0.55)", backdropFilter: "blur(18px)",
     WebkitBackdropFilter: "blur(18px)", border: "1px solid rgba(255,255,255,0.15)",

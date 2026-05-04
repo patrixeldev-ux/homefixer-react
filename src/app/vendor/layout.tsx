@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import VendorSidebar from "./components/sidebar";
+import DashboardTopbar from "../../components/DashboardTopbar";
 
 export default function VendorLayout({ children }: { children: React.ReactNode }) {
   const router   = useRouter();
@@ -32,9 +33,17 @@ export default function VendorLayout({ children }: { children: React.ReactNode }
   if (isAuthPage) return <>{children}</>;
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex h-screen overflow-hidden bg-gray-50">
       <VendorSidebar />
-      <main className="flex-1 overflow-y-auto">{children}</main>
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <DashboardTopbar
+          roleLabel="Vendor"
+          accentClass="bg-amber-500"
+          logoutEndpoint="/api/auth/logout/"
+          logoutRedirect="/vendor/auth"
+        />
+        <main className="flex-1 overflow-y-auto p-6">{children}</main>
+      </div>
     </div>
   );
 }

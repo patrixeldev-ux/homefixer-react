@@ -1,88 +1,90 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
+import Image from "next/image";
 import {
-  FiHome, FiUsers, FiPackage, FiUser,
-  FiClipboard, FiLogOut,
+  FiHome,
+  FiUsers,
+  FiClipboard,
+  FiMapPin,
+  FiPackage,
+  FiUser,
+  FiSettings,
+  FiHelpCircle,
 } from "react-icons/fi";
-import api from "../../../lib/api";
 
-function Logo() {
-  return (
-    <div className="flex items-center gap-2">
-      <img src="/logo.jpeg" alt="HomeFixer" className="h-20 w-auto object-contain" />
-    </div>
-  );
-}
+// ── Menu ordered by serviceman workflow ───────────────────────────────────────
+const menuGroups = [
+  { group: "OVERVIEW", items: [
+    { name: "Dashboard",       icon: <FiHome size={16} />,      link: "/service-man/dashboard" },
+  ]},
+  { group: "WORK FLOW", items: [
+    { name: "User Requests",   icon: <FiUsers size={16} />,     link: "/service-man/userrequest" },
+    { name: "My Bookings",     icon: <FiClipboard size={16} />, link: "/service-man/bookings" },
+    { name: "Live Tracking",   icon: <FiMapPin size={16} />,    link: "/service-man/tracking" },
+    { name: "Products",        icon: <FiPackage size={16} />,   link: "/service-man/products" },
+  ]},
+  { group: "ACCOUNT", items: [
+    { name: "My Profile",      icon: <FiUser size={16} />,      link: "/service-man/profile" },
+    { name: "Help Center",     icon: <FiHelpCircle size={16} />,link: "/service-man/help-center" },
+    { name: "Settings",        icon: <FiSettings size={16} />,  link: "/service-man/settings" },
+  ]},
+];
 
 export default function ServicemanSidebar() {
   const pathname = usePathname();
-  const router   = useRouter();
-
-  const handleLogout = async () => {
-    try { await api.post("/api/auth/logout/"); } catch {}
-    finally {
-      localStorage.clear();
-      router.push("/service-man");
-    }
+  const isActive = (href: string) => {
+    // Exact match for tracking index — don't highlight when on /tracking/[id] (full-screen, no sidebar)
+    if (href === "/service-man/tracking") return pathname === href;
+    return pathname === href || pathname.startsWith(href + "/");
   };
 
-  const menuItems = [
-    { name: "Dashboard",      icon: <FiHome />,      link: "/service-man/dashboard" },
-    { name: "User Requests",  icon: <FiUsers />,     link: "/service-man/userrequest" },
-    { name: "My Bookings",    icon: <FiClipboard />, link: "/service-man/bookings" },
-    { name: "Products",       icon: <FiPackage />,   link: "/service-man/products" },
-    { name: "My Profile",     icon: <FiUser />,      link: "/service-man/profile" },
-  ];
-
-  const isActive = (href: string) => pathname === href;
-
   return (
-    <aside className="w-64 min-h-screen bg-[#0B1C2D] text-[#A9B7D0] flex flex-col">
+    <aside className="w-60 h-screen bg-[#0B1C2D] text-[#A9B7D0] flex flex-col flex-shrink-0">
 
       {/* Logo */}
-      <div className="px-6 py-6 border-b border-white/10">
-        <Logo />
+      <div className="px-5 py-4 border-b border-white/10 flex items-center">
+        <Image src="/logo.jpeg" alt="HomeFixer" width={120} height={40} className="h-10 w-auto object-contain" loading="eager" priority />
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 px-4 py-6 space-y-6 text-sm">
-        <div>
-          <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-[#6C7A96]">
-            SERVICEMAN
-          </p>
-          <div className="space-y-1">
-            {menuItems.map((item) => (
-              <Link
-                key={item.name}
-                href={item.link}
-                className={`flex items-center justify-between px-4 py-2 rounded-md transition
-                  ${isActive(item.link)
-                    ? "bg-blue-600/20 text-white"
-                    : "hover:bg-white/5 hover:text-white"
+      <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-5 text-sm">
+        {menuGroups.map(group => (
+          <div key={group.group}>
+            <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-widest text-[#4A5568]">
+              {group.group}
+            </p>
+            <div className="space-y-0.5">
+              {group.items.map(item => (
+                <Link
+                  key={item.name}
+                  href={item.link}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all font-medium ${
+                    isActive(item.link)
+                      ? "bg-blue-600/20 text-white"
+                      : "text-[#A9B7D0] hover:bg-white/5 hover:text-white"
                   }`}
-              >
-                <div className="flex items-center gap-3">
-                  {item.icon}
-                  <span>{item.name}</span>
-                </div>
-                <span className="text-xs opacity-60">▾</span>
-              </Link>
-            ))}
+                >
+                  <span className={isActive(item.link) ? "text-blue-400" : "text-[#6C7A96]"}>
+                    {item.icon}
+                  </span>
+                  {item.name}
+                  {isActive(item.link) && (
+                    <span className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-400" />
+                  )}
+                </Link>
+              ))}
+            </div>
           </div>
-        </div>
+        ))}
       </nav>
 
-      {/* Logout */}
-      <div className="px-6 py-4 border-t border-white/10">
-        <button
-          onClick={handleLogout}
-          className="w-full text-left px-4 py-2 rounded-md text-red-400 hover:bg-red-500/10 hover:text-red-300 transition flex items-center gap-3"
-        >
-          <FiLogOut />
-          <span>Logout</span>
-        </button>
+      {/* Bottom role tag */}
+      <div className="px-5 py-3 border-t border-white/10">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-[#4A5568]">
+          Serviceman Portal
+        </p>
       </div>
     </aside>
   );

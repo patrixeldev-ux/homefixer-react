@@ -54,10 +54,7 @@ export default function UserRequestsPage() {
   const [selected, setSelected]           = useState<Booking | null>(null);
 
   useEffect(() => {
-    if (!localStorage.getItem("accessToken")) {
-      router.replace("/service-man");
-      return;
-    }
+    if (!localStorage.getItem("accessToken")) { router.replace("/service-man"); return; }
     fetchRequests();
   }, []);
 
@@ -88,26 +85,31 @@ export default function UserRequestsPage() {
   };
 
   return (
-    <main className="min-h-screen bg-gray-50 p-6 sm:p-8">
+    <div className="h-full flex flex-col gap-5">
 
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Customer Requests</h1>
-        <p className="text-gray-500 text-sm mt-1">
-          New bookings waiting for your response
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Customer Requests</h1>
+          <p className="text-gray-500 text-sm mt-0.5">New bookings waiting for your response</p>
+        </div>
+        {bookings.length > 0 && (
+          <span className="bg-orange-100 text-orange-700 text-sm font-bold px-3 py-1.5 rounded-full">
+            {bookings.length} pending
+          </span>
+        )}
       </div>
 
-      {/* Loading */}
+      {/* Loading skeletons */}
       {loading && (
-        <div className="max-w-2xl space-y-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
           {[...Array(3)].map((_, i) => <SkeletonCard key={i} />)}
         </div>
       )}
 
-      {/* Empty */}
+      {/* Empty state */}
       {!loading && bookings.length === 0 && (
-        <div className="max-w-2xl bg-white rounded-2xl border border-gray-100 p-16 text-center shadow-sm">
+        <div className="bg-white rounded-2xl border border-gray-100 p-16 text-center shadow-sm">
           <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <span className="text-3xl">📭</span>
           </div>
@@ -116,65 +118,71 @@ export default function UserRequestsPage() {
         </div>
       )}
 
-      {/* Cards */}
+      {/* Cards grid */}
       {!loading && bookings.length > 0 && (
-        <div className="max-w-2xl space-y-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 overflow-y-auto pb-4">
           {bookings.map(b => (
             <div
               key={b.id}
-              className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow overflow-hidden"
+              className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow overflow-hidden flex flex-col"
             >
               {/* Top accent */}
               <div className="h-1 w-full bg-gradient-to-r from-blue-600 to-indigo-600" />
 
-              <div className="p-5">
+              <div className="p-5 flex flex-col flex-1">
                 {/* Title row */}
-                <div className="flex items-start justify-between gap-3 mb-4">
-                  <div className="flex items-start gap-3 flex-1 min-w-0">
-                    <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0 text-lg">
-                      🔧
-                    </div>
-                    <div className="min-w-0">
-                      <h3 className="font-bold text-gray-900 capitalize leading-tight">
-                        {b.problem_title}
-                      </h3>
-                      <p className="text-gray-500 text-sm mt-0.5 line-clamp-2">
-                        {b.problem_description}
-                      </p>
-                    </div>
+                <div className="flex items-start gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0 text-lg">
+                    🔧
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-bold text-gray-900 capitalize leading-tight">
+                      {b.problem_title}
+                    </h3>
+                    <p className="text-gray-500 text-sm mt-0.5 line-clamp-2">
+                      {b.problem_description}
+                    </p>
                   </div>
                   <span className="flex-shrink-0 px-2.5 py-1 bg-orange-100 text-orange-700 text-xs font-bold rounded-full">
                     PENDING
                   </span>
                 </div>
 
-                {/* Info */}
-                <div className="bg-gray-50 rounded-xl p-3 space-y-2 mb-4">
-                  <p className="text-sm text-gray-700 flex items-start gap-2">
+                {/* Info block */}
+                <div className="bg-gray-50 rounded-xl p-3 space-y-1.5 mb-3 text-sm text-gray-700">
+                  <p className="flex items-start gap-2">
                     <span className="flex-shrink-0">📍</span>
                     <span className="line-clamp-1">{formatAddress(b.customer_address)}</span>
                   </p>
-                  <p className="text-sm text-gray-700 flex items-center gap-2">
+                  <p className="flex items-center gap-2">
                     <span>📅</span>
                     <span>{b.scheduled_date} · {b.scheduled_time}</span>
                   </p>
-                  <p className="text-sm text-gray-700 flex items-center gap-2">
+                  <p className="flex items-center gap-2">
                     <span>💰</span>
                     <span>
-                      ₹{b.service_charge} service charge
-                      <span className="text-gray-400 ml-1">+ ₹{b.platform_fee} platform fee</span>
+                      ₹{b.service_charge}
+                      <span className="text-gray-400 ml-1 text-xs">+ ₹{b.platform_fee} fee</span>
                     </span>
                   </p>
                 </div>
 
-                {/* Total */}
-                <div className="flex items-center justify-between mb-4 px-1">
-                  <span className="text-sm text-gray-500">Total Earnings</span>
-                  <span className="font-bold text-blue-700 text-base">₹{b.total_amount}</span>
+                {/* Total + detail button */}
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <p className="text-xs text-gray-500">Total Earnings</p>
+                    <p className="font-bold text-blue-700 text-base">₹{b.total_amount}</p>
+                  </div>
+                  <button
+                    onClick={() => setSelected(b)}
+                    className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-semibold rounded-lg transition-colors"
+                  >
+                    View Details
+                  </button>
                 </div>
 
-                {/* Actions */}
-                <div className="flex gap-2">
+                {/* Actions — pushed to bottom */}
+                <div className="flex gap-2 mt-auto">
                   <button
                     onClick={() => handleAction(b.id, "accept")}
                     disabled={actionLoading === b.id}
@@ -191,12 +199,6 @@ export default function UserRequestsPage() {
                     className="flex-1 py-2.5 bg-white hover:bg-red-50 disabled:opacity-50 text-red-600 font-bold rounded-xl text-sm transition-colors border border-red-200"
                   >
                     ✕ Reject
-                  </button>
-                  <button
-                    onClick={() => setSelected(b)}
-                    className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl text-sm transition-colors"
-                  >
-                    ···
                   </button>
                 </div>
               </div>
@@ -229,14 +231,14 @@ export default function UserRequestsPage() {
               </div>
 
               <div className="space-y-3 text-sm mb-5">
-                {[
-                  ["Problem",     selected.problem_title],
-                  ["Description", selected.problem_description],
-                  ["Address",     formatAddress(selected.customer_address)],
-                  ["Scheduled",   `${selected.scheduled_date} at ${selected.scheduled_time}`],
+                {([
+                  ["Problem",        selected.problem_title],
+                  ["Description",    selected.problem_description],
+                  ["Address",        formatAddress(selected.customer_address)],
+                  ["Scheduled",      `${selected.scheduled_date} at ${selected.scheduled_time}`],
                   ["Service Charge", `₹${selected.service_charge}`],
                   ["Platform Fee",   `₹${selected.platform_fee}`],
-                ].map(([label, value]) => (
+                ] as [string, string][]).map(([label, value]) => (
                   <div key={label} className="flex gap-3">
                     <span className="text-gray-500 w-32 flex-shrink-0">{label}</span>
                     <span className="text-gray-900 font-medium capitalize">{value}</span>
@@ -280,6 +282,6 @@ export default function UserRequestsPage() {
           </div>
         </div>
       )}
-    </main>
+    </div>
   );
 }

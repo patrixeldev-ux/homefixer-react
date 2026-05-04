@@ -21,12 +21,20 @@ export default function CustomerDashboard() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const userRes = await api.get("/api/profile/");
+        const [userRes, activeRes, completedRes, cancelledRes] = await Promise.all([
+          api.get("/api/profile/"),
+          api.get("/api/customer/bookings/", { params: { section: "active" } }),
+          api.get("/api/customer/bookings/", { params: { section: "completed" } }),
+          api.get("/api/customer/bookings/", { params: { section: "cancelled" } }),
+        ]);
+
         setCustomer(userRes.data.user);
 
-        // Wire up when bookings API is ready
-        // const bookRes = await api.get("/api/bookings/");
-        // setBookings(bookRes.data);
+        const active    = Array.isArray(activeRes.data)    ? activeRes.data    : activeRes.data?.results    ?? [];
+        const completed = Array.isArray(completedRes.data) ? completedRes.data : completedRes.data?.results ?? [];
+        const cancelled = Array.isArray(cancelledRes.data) ? cancelledRes.data : cancelledRes.data?.results ?? [];
+
+        setBookings([...active, ...completed, ...cancelled]);
       } catch (err) {
         console.log("Dashboard error:", err);
       } finally {
@@ -47,9 +55,11 @@ export default function CustomerDashboard() {
     );
   }
 
-  const total = bookings.length;
-  const pending = bookings.filter((b) => b.status === "pending").length;
-  const completed = bookings.filter((b) => b.status === "completed").length;
+  const total     = bookings.length;
+  const pending   = bookings.filter(b => ["pending", "accepted", "ongoing"].includes(String(b.status).toLowerCase())).length;
+  const completed = bookings.filter(b => String(b.status).toLowerCase() === "completed").length;
+
+  const cancelled = bookings.filter(b => String(b.status).toLowerCase() === "cancelled").length;
 
   const stats = [
     {
@@ -60,7 +70,7 @@ export default function CustomerDashboard() {
       border: "border-blue-100",
     },
     {
-      label: "Pending",
+      label: "Active",
       value: pending,
       icon: <FiClock className="text-yellow-600" size={20} />,
       bg: "bg-yellow-50",

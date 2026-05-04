@@ -86,7 +86,7 @@ function ChooseRoleContent() {
         <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-3">
           {isLogin ? "Welcome back" : "Join HomeFixer"}
         </h1>
-        <p className="text-gray-900 text-lg">
+        <p className="text-gray-500 text-lg">
           {isLogin
             ? "Select your role to continue to your dashboard"
             : "Choose how you'd like to use HomeFixer"
@@ -115,10 +115,10 @@ function ChooseRoleContent() {
               </div>
 
               <h3 className="text-xl font-bold text-gray-900 mb-2">{role.label}</h3>
-              <p className="text-gray-900 text-sm leading-relaxed mb-6">{role.desc}</p>
+              <p className="text-gray-500 text-sm leading-relaxed mb-6">{role.desc}</p>
 
               <div className={`w-full ${c.btn} text-white py-2.5 rounded-xl text-sm font-bold text-center transition-colors`}>
-                {isLogin ? `Login as ${role.label}` : `Register as ${role.label}`}
+                {isLogin ? "Login" : "Register"}
               </div>
             </button>
           );
@@ -126,7 +126,7 @@ function ChooseRoleContent() {
       </div>
 
       {/* Toggle CTA */}
-      <p className="text-gray-900 text-sm">
+      <p className="text-gray-500 text-sm">
         {isLogin ? "Don't have an account? " : "Already have an account? "}
         <button
           onClick={toggleMode}

@@ -124,14 +124,13 @@ export default function CustomerAuthPage() {
       return;
     }
 
-  console.log("Submitting register:", form);
-
     /* -------- STEP 3 -------- */
     if (step === 3) {
       if (!form.name || !form.phone || !form.password)
         return setError("All fields are required");
 
       setLoading(true);
+      console.log("Submitting register:", form);
       try {
         const res = await api.post("/api/auth/register/complete/", {
           email: form.email,
@@ -141,12 +140,15 @@ export default function CustomerAuthPage() {
           role: "CUSTOMER",
         });
 
-        if (res.data.success) {
-          // ✅ Save tokens on registration too
-          localStorage.setItem("accessToken", res.data.tokens.access);
-          localStorage.setItem("refreshToken", res.data.tokens.refresh);
+        // Backend may return { tokens: {...} } or { success: true, tokens: {...} }
+        const tokens = res.data?.tokens;
+        if (tokens?.access) {
+          localStorage.setItem("accessToken", tokens.access);
+          localStorage.setItem("refreshToken", tokens.refresh);
           localStorage.setItem("role", "CUSTOMER");
-          router.push("/customer/dashboard/");
+          router.push("/customer/dashboard");
+        } else {
+          setError("Registration failed. Please try again.");
         }
       } catch (err: unknown) {
         const error = err as ApiError;
@@ -160,10 +162,10 @@ export default function CustomerAuthPage() {
           JSON.stringify(error.response?.data) ||
           "Registration failed"
         );
-
       } finally {
         setLoading(false);
       }
+      return;
     }
   }
 
