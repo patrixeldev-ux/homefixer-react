@@ -10,27 +10,31 @@ import {
   FiMapPin,
   FiPackage,
   FiUser,
-  FiSettings,
   FiHelpCircle,
+  FiCreditCard,
 } from "react-icons/fi";
 
 // ── Menu ordered by natural customer journey ──────────────────────────────────
 const menuItems = [
   // Discovery & booking
-  { group: "GET STARTED",  items: [
-    { name: "Dashboard",    icon: <FiHome size={16} />,         link: "/customer/dashboard" },
-    { name: "Book Service", icon: <FiCalendar size={16} />,     link: "/customer/booking" },
+  { group: "GET STARTED", items: [
+    { name: "Dashboard",    icon: <FiHome size={16} />,       link: "/customer/dashboard" },
+    { name: "Book Service", icon: <FiCalendar size={16} />,   link: "/customer/booking" },
   ]},
   // Track & manage
   { group: "MY ACTIVITY", items: [
-    { name: "My Bookings",  icon: <FiClipboard size={16} />,    link: "/customer/my-bookings" },
-    { name: "Live Tracking",icon: <FiMapPin size={16} />,       link: "/customer/maps" },
-    { name: "Products",     icon: <FiPackage size={16} />,      link: "/customer/products" },
+    { name: "My Bookings",  icon: <FiClipboard size={16} />,  link: "/customer/my-bookings" },
+    { name: "Live Tracking",icon: <FiMapPin size={16} />,     link: "/customer/maps" },
+    { name: "Products",     icon: <FiPackage size={16} />,    link: "/customer/products" },
+  ]},
+  // Finance
+  { group: "FINANCE", items: [
+    { name: "My Wallet",    icon: <FiCreditCard size={16} />, link: "/customer/wallet" },
   ]},
   // Account
   { group: "ACCOUNT", items: [
-    { name: "My Profile",   icon: <FiUser size={16} />,         link: "/customer/profile" },
-    { name: "Help Center",  icon: <FiHelpCircle size={16} />,   link: "/customer/help-center" },
+    { name: "My Profile",   icon: <FiUser size={16} />,       link: "/customer/profile" },
+    { name: "Help Center",  icon: <FiHelpCircle size={16} />, link: "/customer/help-center" },
   ]},
 ];
 
@@ -43,7 +47,16 @@ export default function CustomerSidebar() {
 
       {/* Logo */}
       <div className="px-5 py-4 border-b border-white/10 flex items-center gap-2">
-        <Image src="/logo.jpeg" alt="HomeFixer" width={120} height={40} className="h-10 w-auto object-contain" loading="eager" priority />
+        <Image
+          src="/logo.jpeg"
+          alt="HomeFixer"
+          width={0}
+          height={0}
+          sizes="100vw"
+          className="h-10 w-auto object-contain"
+          loading="eager"
+          priority
+        />
       </div>
 
       {/* Nav */}
