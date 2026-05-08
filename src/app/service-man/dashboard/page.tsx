@@ -103,7 +103,7 @@ export default function ServiceManDashboard() {
       if (!navigator.geolocation) return;
       navigator.geolocation.getCurrentPosition(
         (pos) => {
-          api.post("/api/serviceman/update-location/", {
+          api.post("/api/serviceman/location/update/", {
             lat: pos.coords.latitude,
             lon: pos.coords.longitude,
           }).catch(() => {});

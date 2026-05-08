@@ -214,31 +214,56 @@ export default function CustomerBookingPage() {
 
       /* ── Step 2b: Razorpay path (UPI / Cash / Card) ── */
       const intentRes = await api.post(
-        `/api/booking/${bookingId}/payment/create-intent/`,
+        `/api/booking/${bookingId}/payment/create/`,
         { stage: "advance", gateway: "razorpay" }
       );
-      const { order_id, amount, key } = intentRes.data;
+      const {
+  order_id,
+  amount,
+  key,
+  payment_id,
+} = intentRes.data;
 
-      await new Promise<void>((resolve, reject) => {
-        const options = {
-          key, amount, currency: "INR",
-          name: "HomeFixer",
-          description: `Visiting charge for booking #${bookingId}`,
-          order_id,
-          handler: async (response: any) => {
-            try {
-              await api.post(`/api/booking/${bookingId}/payment/razorpay/verify/`, {
-                razorpay_order_id:   response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature:  response.razorpay_signature,
-              });
-              resolve();
-            } catch { reject(new Error("Payment verification failed")); }
-          },
-          modal: { ondismiss: () => reject(new Error("Payment cancelled")) },
-          prefill: { name: form.name, contact: form.phone },
-          theme: { color: "#2563eb" },
-        };
+await new Promise<void>((resolve, reject) => {
+  const options = {
+    key,
+    amount,
+    currency: "INR",
+    name: "HomeFixer",
+    description: `Visiting charge for booking #${bookingId}`,
+    order_id,
+
+    handler: async (response: any) => {
+      try {
+        await api.post(
+          `/api/payment/${payment_id}/verify/razorpay/`,
+          {
+            razorpay_order_id: response.razorpay_order_id,
+            razorpay_payment_id: response.razorpay_payment_id,
+            razorpay_signature: response.razorpay_signature,
+          }
+        );
+
+        resolve();
+      } catch (err) {
+        console.error("Verification failed:", err);
+        reject(new Error("Payment verification failed"));
+      }
+    },
+
+    modal: {
+      ondismiss: () => reject(new Error("Payment cancelled")),
+    },
+
+    prefill: {
+      name: form.name,
+      contact: form.phone,
+    },
+
+    theme: {
+      color: "#2563eb",
+    },
+  };
 
         const launch = () => {
           const rzp = new (window as any).Razorpay(options);

@@ -411,30 +411,51 @@ function ServiceBillReceipt({ booking, onClose }: {
 
 async function openRazorpayFinalPayment(bookingId: number): Promise<void> {
   const intentRes = await api.post(
-    `/api/booking/${bookingId}/payment/create-intent/`,
+    `/api/booking/${bookingId}/payment/create/`,
     { stage: "final", gateway: "razorpay" }
   );
-  const { order_id, amount, key } = intentRes.data;
+  const {
+  order_id,
+  amount,
+  key,
+  payment_id,
+} = intentRes.data;
 
-  return new Promise<void>((resolve, reject) => {
-    const options = {
-      key, amount, currency: "INR",
-      name: "HomeFixer",
-      description: `Final payment for booking #${bookingId}`,
-      order_id,
-      handler: async (response: Record<string, string>) => {
-        try {
-          await api.post(`/api/booking/${bookingId}/payment/razorpay/verify/`, {
-            razorpay_order_id:   response.razorpay_order_id,
+return new Promise<void>((resolve, reject) => {
+  const options = {
+    key,
+    amount,
+    currency: "INR",
+    name: "HomeFixer",
+    description: `Final payment for booking #${bookingId}`,
+    order_id,
+
+    handler: async (response: Record<string, string>) => {
+      try {
+        await api.post(
+          `/api/payment/${payment_id}/verify/razorpay/`,
+          {
+            razorpay_order_id: response.razorpay_order_id,
             razorpay_payment_id: response.razorpay_payment_id,
-            razorpay_signature:  response.razorpay_signature,
-          });
-          resolve();
-        } catch { reject(new Error("Payment verification failed")); }
-      },
-      modal: { ondismiss: () => reject(new Error("Payment cancelled")) },
-      theme: { color: "#2563eb" },
-    };
+            razorpay_signature: response.razorpay_signature,
+          }
+        );
+
+        resolve();
+      } catch (err) {
+        console.error("Verification failed:", err);
+        reject(new Error("Payment verification failed"));
+      }
+    },
+
+    modal: {
+      ondismiss: () => reject(new Error("Payment cancelled")),
+    },
+
+    theme: {
+      color: "#2563eb",
+    },
+  };
 
     const launch = () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -496,7 +517,7 @@ export default function MyBookingsPage() {
   const fetchBookings = async () => {
     setLoading(true); setError("");
     try {
-      const res = await api.get("/api/customer/bookings/", { params: { section } });
+      const res = await api.get("/api/bookings/history", { params: { section } });
       const data = res.data;
       setBookings(Array.isArray(data) ? data : data.results ?? []);
     } catch { setError("Failed to load bookings."); }
@@ -506,9 +527,9 @@ export default function MyBookingsPage() {
   const fetchAllCounts = async () => {
     try {
       const [a, c, x] = await Promise.all([
-        api.get("/api/customer/bookings/", { params: { section: "active" } }),
-        api.get("/api/customer/bookings/", { params: { section: "completed" } }),
-        api.get("/api/customer/bookings/", { params: { section: "cancelled" } }),
+        api.get("/api/bookings/history", { params: { section: "active" } }),
+        api.get("/api/bookings/history", { params: { section: "completed" } }),
+        api.get("/api/bookings/history", { params: { section: "cancelled" } }),
       ]);
       const count = (r: { data: unknown }) => {
         const d = r.data;

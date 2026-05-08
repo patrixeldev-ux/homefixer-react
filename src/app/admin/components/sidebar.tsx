@@ -10,7 +10,7 @@ export default function Sidebar() {
 
   const handleLogout = async () => {
     try {
-      await api.post("/api/logout");
+      await api.post("/api/auth/logout");
     } catch {}
     finally {
       localStorage.clear();
