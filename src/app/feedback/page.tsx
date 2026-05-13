@@ -309,7 +309,11 @@ export default function FeedbackPage() {
           ),
         };
 
+<<<<<<< HEAD
         await api.post("/feedback/", payload);
+=======
+        await api.post("/api/feedback/", payload);
+>>>>>>> 0a0f896ee012e76cbc8d5fdbe69fc242601ec1ff
 
         setStep(4);
       } catch (err: unknown) {

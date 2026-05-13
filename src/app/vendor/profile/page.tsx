@@ -36,7 +36,11 @@ export default function VendorProfilePage() {
 
   const fetchProfile = async () => {
     try {
+<<<<<<< HEAD
       const res = await api.get("/profile/");
+=======
+      const res = await api.get("/api/profile/");
+>>>>>>> 0a0f896ee012e76cbc8d5fdbe69fc242601ec1ff
       const u = res.data.user; const p = res.data.profile;
       setUser({ name: u.name || "", email: u.email || "", phone: u.phone || "" });
       setIsApproved(p?.is_approved ?? false);
@@ -68,7 +72,11 @@ export default function VendorProfilePage() {
       data.append("account_holder_name", accountHolderName);
       data.append("bank_name", bankName); data.append("account_number", accountNumber);
       data.append("ifsc_code", ifscCode);
+<<<<<<< HEAD
       await api.put("/profile/vendor/update/", data, { headers: { "Content-Type": "multipart/form-data" } });
+=======
+      await api.put("/api/profile/vendor/update/", data, { headers: { "Content-Type": "multipart/form-data" } });
+>>>>>>> 0a0f896ee012e76cbc8d5fdbe69fc242601ec1ff
       setSuccess("Profile updated successfully!");
       setTimeout(() => setSuccess(""), 3000);
     } catch (err: unknown) {

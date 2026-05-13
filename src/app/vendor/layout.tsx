@@ -39,7 +39,11 @@ export default function VendorLayout({ children }: { children: React.ReactNode }
         <DashboardTopbar
           roleLabel="Vendor"
           accentClass="bg-amber-500"
+<<<<<<< HEAD
           logoutEndpoint="/auth/logout/"
+=======
+          logoutEndpoint="/api/auth/logout/"
+>>>>>>> 0a0f896ee012e76cbc8d5fdbe69fc242601ec1ff
           logoutRedirect="/vendor/auth"
         />
         <main className="flex-1 overflow-y-auto p-6">{children}</main>

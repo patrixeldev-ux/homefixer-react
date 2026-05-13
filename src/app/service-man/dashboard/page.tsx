@@ -54,7 +54,11 @@ export default function ServiceManDashboard() {
 
   const fetchProfile = async () => {
     try {
+<<<<<<< HEAD
       const res = await api.get("/profile/");
+=======
+      const res = await api.get("/api/profile/");
+>>>>>>> 0a0f896ee012e76cbc8d5fdbe69fc242601ec1ff
       const u = res.data.user;
       setUser({ name: u.name || u.email, email: u.email });
     } catch { router.replace("/service-man/auth"); }
@@ -62,7 +66,11 @@ export default function ServiceManDashboard() {
 
   const fetchBookings = async () => {
     try {
+<<<<<<< HEAD
       const res = await api.get("/serviceman/booking/");
+=======
+      const res = await api.get("/api/serviceman/bookings/");
+>>>>>>> 0a0f896ee012e76cbc8d5fdbe69fc242601ec1ff
       const data = Array.isArray(res.data) ? res.data : res.data.results ?? [];
       setBookings(data);
     } catch (err) { console.error("Bookings fetch failed", err); }
@@ -71,7 +79,11 @@ export default function ServiceManDashboard() {
   const handleAction = async (bookingId: number, action: "accept" | "reject") => {
     setActionLoading(bookingId);
     try {
+<<<<<<< HEAD
       await api.patch(`/booking/${bookingId}/action/`, { action });
+=======
+      await api.patch(`/api/booking/${bookingId}/action/`, { action });
+>>>>>>> 0a0f896ee012e76cbc8d5fdbe69fc242601ec1ff
       await fetchBookings();
     } catch { alert(`Failed to ${action} booking`); }
     finally { setActionLoading(null); }
@@ -79,7 +91,11 @@ export default function ServiceManDashboard() {
 
   const handleLogout = async () => {
     setLoadingLogout(true);
+<<<<<<< HEAD
     try { await api.post("/auth/logout/", {}); } catch {}
+=======
+    try { await api.post("/api/auth/logout/", {}); } catch {}
+>>>>>>> 0a0f896ee012e76cbc8d5fdbe69fc242601ec1ff
     finally { localStorage.clear(); router.replace("/service-man/auth"); }
   };
 
@@ -103,7 +119,11 @@ export default function ServiceManDashboard() {
       if (!navigator.geolocation) return;
       navigator.geolocation.getCurrentPosition(
         (pos) => {
+<<<<<<< HEAD
           api.post("/serviceman/location/update/", {
+=======
+          api.post("/api/serviceman/location/update/", {
+>>>>>>> 0a0f896ee012e76cbc8d5fdbe69fc242601ec1ff
             lat: pos.coords.latitude,
             lon: pos.coords.longitude,
           }).catch(() => {});
@@ -263,7 +283,11 @@ export default function ServiceManDashboard() {
             {active.map((booking) => (
               <div
                 key={booking.id}
+<<<<<<< HEAD
                 onClick={() => router.push(`/service-man/booking/${booking.id}`)}
+=======
+                onClick={() => router.push(`/service-man/bookings/${booking.id}`)}
+>>>>>>> 0a0f896ee012e76cbc8d5fdbe69fc242601ec1ff
                 className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 flex items-center justify-between cursor-pointer hover:shadow-md hover:border-blue-200 transition-all group"
               >
                 <div>

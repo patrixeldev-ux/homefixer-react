@@ -53,7 +53,11 @@ export default function ServicemanTrackingIndexPage() {
   useEffect(() => {
     (async () => {
       try {
+<<<<<<< HEAD
         const res = await api.get("/serviceman/booking/");
+=======
+        const res = await api.get("/api/serviceman/bookings/");
+>>>>>>> 0a0f896ee012e76cbc8d5fdbe69fc242601ec1ff
         const all: Booking[] = Array.isArray(res.data) ? res.data : res.data.results ?? [];
         // Only show bookings that can be tracked
         setBookings(all.filter(b => ["ACCEPTED", "ONGOING"].includes(b.status)));

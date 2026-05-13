@@ -90,7 +90,11 @@ export default function VendorOrdersPage() {
 
   const fetchOrders = async () => {
     try {
+<<<<<<< HEAD
       const res = await api.get("/vendor/material-orders/");
+=======
+      const res = await api.get("/api/vendor/material-orders/");
+>>>>>>> 0a0f896ee012e76cbc8d5fdbe69fc242601ec1ff
       setOrders(Array.isArray(res.data) ? res.data : []);
     } catch (err: unknown) {
       const e = err as { response?: { status?: number; data?: unknown } };
@@ -104,7 +108,11 @@ export default function VendorOrdersPage() {
   const handleAction = async (orderId: number, action: "accept" | "reject") => {
     setActionLoading(orderId);
     try {
+<<<<<<< HEAD
       await api.patch(`/vendor/material-orders/${orderId}/action/`, { action });
+=======
+      await api.patch(`/api/vendor/material-orders/${orderId}/action/`, { action });
+>>>>>>> 0a0f896ee012e76cbc8d5fdbe69fc242601ec1ff
       await fetchOrders();
       if (selected?.id === orderId) setSelected(null);
     } catch (err: unknown) {

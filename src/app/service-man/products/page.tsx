@@ -34,7 +34,11 @@ export default function ServicemanProductsPage() {
 
   const fetchProducts = async () => {
     try {
+<<<<<<< HEAD
       const res = await api.get("/products/");
+=======
+      const res = await api.get("/api/products/");
+>>>>>>> 0a0f896ee012e76cbc8d5fdbe69fc242601ec1ff
       setProducts(Array.isArray(res.data) ? res.data : []);
     } catch (err: unknown) {
       const e = err as { response?: { status?: number } };
@@ -45,7 +49,11 @@ export default function ServicemanProductsPage() {
 
   const fetchCategories = async () => {
     try {
+<<<<<<< HEAD
       const res = await api.get("/product-categories/");
+=======
+      const res = await api.get("/api/product-categories/");
+>>>>>>> 0a0f896ee012e76cbc8d5fdbe69fc242601ec1ff
       setCategories(Array.isArray(res.data) ? res.data : []);
     } catch { console.error("Categories fetch failed"); }
   };

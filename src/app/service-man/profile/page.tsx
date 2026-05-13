@@ -45,7 +45,11 @@ export default function ServiceManProfile() {
 
   const fetchProfile = async () => {
     try {
+<<<<<<< HEAD
       const res = await api.get("/profile/");
+=======
+      const res = await api.get("/api/profile/");
+>>>>>>> 0a0f896ee012e76cbc8d5fdbe69fc242601ec1ff
       const u = res.data.user;
       const p = res.data.profile;
       setUser({ name: u.name || "", email: u.email || "", phone: u.phone || "" });
@@ -81,7 +85,11 @@ export default function ServiceManProfile() {
       formData.append("skills", form.skills);
       formData.append("visiting_charge", form.visiting_charge);
       if (imageFile) formData.append("profile_image", imageFile);
+<<<<<<< HEAD
       await api.put("/profile/serviceman/update/", formData, {
+=======
+      await api.put("/api/profile/serviceman/update/", formData, {
+>>>>>>> 0a0f896ee012e76cbc8d5fdbe69fc242601ec1ff
         headers: { "Content-Type": "multipart/form-data" },
       });
       setSuccessMsg("Profile updated successfully!");

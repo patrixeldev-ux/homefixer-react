@@ -37,7 +37,11 @@ export default function AdminUsersPage() {
     setError(null);
 
     try {
+<<<<<<< HEAD
       const res = await api.get("/admin/users", { params: { per_page: 20 } });
+=======
+      const res = await api.get("/api/admin/users", { params: { per_page: 20 } });
+>>>>>>> 0a0f896ee012e76cbc8d5fdbe69fc242601ec1ff
 
       const rawUsers =
         Array.isArray(res.data?.data?.data)
@@ -77,7 +81,11 @@ export default function AdminUsersPage() {
     setSelectedUser(null);
 
     try {
+<<<<<<< HEAD
       const res = await api.get(`/admin/users/${userId}`);
+=======
+      const res = await api.get(`/api/admin/users/${userId}`);
+>>>>>>> 0a0f896ee012e76cbc8d5fdbe69fc242601ec1ff
       const user = res.data?.data ?? res.data;
 
       setSelectedUser({
@@ -107,7 +115,11 @@ export default function AdminUsersPage() {
 
     setActionLoading(true);
     try {
+<<<<<<< HEAD
       await api.post(`/admin/users/${userId}/approve`);
+=======
+      await api.post(`/api/admin/users/${userId}/approve`);
+>>>>>>> 0a0f896ee012e76cbc8d5fdbe69fc242601ec1ff
       fetchUsers();
       if (selectedUser?.id === userId) fetchUserById(userId);
     } catch (err) {
@@ -124,7 +136,11 @@ export default function AdminUsersPage() {
 
     setActionLoading(true);
     try {
+<<<<<<< HEAD
       await api.post(`/admin/users/${userId}/ban`, { reason });
+=======
+      await api.post(`/api/admin/users/${userId}/ban`, { reason });
+>>>>>>> 0a0f896ee012e76cbc8d5fdbe69fc242601ec1ff
       fetchUsers();
       if (selectedUser?.id === userId) fetchUserById(userId);
     } catch (err) {

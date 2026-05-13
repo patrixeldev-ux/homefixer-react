@@ -56,7 +56,11 @@ export default function ServicemanSettingsPage() {
     if (newPw !== confirmPw) { setPwError("New passwords do not match."); return; }
     setPwSaving(true);
     try {
+<<<<<<< HEAD
       await api.post("/auth/change-password/", {
+=======
+      await api.post("/api/auth/change-password/", {
+>>>>>>> 0a0f896ee012e76cbc8d5fdbe69fc242601ec1ff
         old_password: currentPw,
         new_password: newPw,
       });
@@ -74,7 +78,11 @@ export default function ServicemanSettingsPage() {
   const handleSaveNotifications = async () => {
     setNotifSaving(true);
     try {
+<<<<<<< HEAD
       await api.post("/settings/notifications/", notif);
+=======
+      await api.post("/api/settings/notifications/", notif);
+>>>>>>> 0a0f896ee012e76cbc8d5fdbe69fc242601ec1ff
       setNotifSuccess("Notification preferences saved!");
       setTimeout(() => setNotifSuccess(""), 3000);
     } catch {
@@ -90,7 +98,11 @@ export default function ServicemanSettingsPage() {
     if (deleteConfirm !== "DELETE") return;
     setDeleting(true);
     try {
+<<<<<<< HEAD
       await api.delete("/auth/delete-account/");
+=======
+      await api.delete("/api/auth/delete-account/");
+>>>>>>> 0a0f896ee012e76cbc8d5fdbe69fc242601ec1ff
       localStorage.clear();
       router.replace("/");
     } catch {

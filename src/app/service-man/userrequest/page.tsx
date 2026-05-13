@@ -61,7 +61,11 @@ export default function UserRequestsPage() {
   const fetchRequests = async () => {
     setLoading(true);
     try {
+<<<<<<< HEAD
       const res = await api.get("/serviceman/booking/");
+=======
+      const res = await api.get("/api/serviceman/bookings/");
+>>>>>>> 0a0f896ee012e76cbc8d5fdbe69fc242601ec1ff
       const all = Array.isArray(res.data) ? res.data : res.data.results ?? [];
       setBookings(all.filter((b: Booking) => b.status === "PENDING"));
     } catch (err) {
@@ -74,7 +78,11 @@ export default function UserRequestsPage() {
   const handleAction = async (id: number, action: "accept" | "reject") => {
     setActionLoading(id);
     try {
+<<<<<<< HEAD
       await api.patch(`/booking/${id}/action/`, { action });
+=======
+      await api.patch(`/api/booking/${id}/action/`, { action });
+>>>>>>> 0a0f896ee012e76cbc8d5fdbe69fc242601ec1ff
       await fetchRequests();
       if (selected?.id === id) setSelected(null);
     } catch {
