@@ -24,8 +24,10 @@ api.interceptors.response.use(
         currentPath === "/auth" ||
         currentPath === "/service-man" ||
         currentPath === "/vendor" ||
+        currentPath === "/customer-auth" ||
         currentPath.startsWith("/service-man/auth") ||
         currentPath.startsWith("/vendor/auth");
+        currentPath.startsWith("/customer-auth");
 
       if (!isAuthPage) {
         const role = localStorage.getItem("role");

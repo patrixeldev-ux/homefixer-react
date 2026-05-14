@@ -29,11 +29,7 @@ export default function CategoriesPage() {
     setError(null);
 
     try {
-<<<<<<< HEAD
       const res = await api.get("/admin/categories");
-=======
-      const res = await api.get("/api/admin/categories");
->>>>>>> 0a0f896ee012e76cbc8d5fdbe69fc242601ec1ff
 
       const rawCategories: any[] = Array.isArray(res.data)
         ? res.data
@@ -77,15 +73,9 @@ export default function CategoriesPage() {
       };
 
       if (editingId) {
-<<<<<<< HEAD
         await api.put(`/admin/categories/${editingId}`, payload);
       } else {
         await api.post("/admin/categories", payload);
-=======
-        await api.put(`/api/admin/categories/${editingId}`, payload);
-      } else {
-        await api.post("/api/admin/categories", payload);
->>>>>>> 0a0f896ee012e76cbc8d5fdbe69fc242601ec1ff
       }
 
       setName("");
@@ -118,11 +108,7 @@ export default function CategoriesPage() {
     setError(null);
 
     try {
-<<<<<<< HEAD
       await api.delete(`/admin/categories/${id}`);
-=======
-      await api.delete(`/api/admin/categories/${id}`);
->>>>>>> 0a0f896ee012e76cbc8d5fdbe69fc242601ec1ff
       setCategories(prev => prev.filter(cat => cat.id !== id));
     } catch (err: any) {
       const message =

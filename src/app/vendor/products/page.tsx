@@ -35,19 +35,11 @@ export default function VendorProductsPage() {
   }, []);
 
   const fetchProducts  = async () => {
-<<<<<<< HEAD
     try { const res = await api.get("/products/"); setProducts(Array.isArray(res.data) ? res.data : []); }
     catch { console.error("Products fetch failed"); }
   };
   const fetchCategories = async () => {
     try { const res = await api.get("/product-categories/"); setCategories(Array.isArray(res.data) ? res.data : []); }
-=======
-    try { const res = await api.get("/api/products/"); setProducts(Array.isArray(res.data) ? res.data : []); }
-    catch { console.error("Products fetch failed"); }
-  };
-  const fetchCategories = async () => {
-    try { const res = await api.get("/api/product-categories/"); setCategories(Array.isArray(res.data) ? res.data : []); }
->>>>>>> 0a0f896ee012e76cbc8d5fdbe69fc242601ec1ff
     catch { console.error("Categories fetch failed"); }
   };
 
@@ -73,15 +65,9 @@ export default function VendorProductsPage() {
       data.append("category", form.category);
       if (imageFile) data.append("image", imageFile);
       if (editingId) {
-<<<<<<< HEAD
         await api.put(`/products/${editingId}/update/`, data, { headers: { "Content-Type": "multipart/form-data" } });
       } else {
         await api.post("/products/create/", data, { headers: { "Content-Type": "multipart/form-data" } });
-=======
-        await api.put(`/api/products/${editingId}/update/`, data, { headers: { "Content-Type": "multipart/form-data" } });
-      } else {
-        await api.post("/api/products/create/", data, { headers: { "Content-Type": "multipart/form-data" } });
->>>>>>> 0a0f896ee012e76cbc8d5fdbe69fc242601ec1ff
       }
       await fetchProducts(); setShowModal(false);
     } catch (err: unknown) {
@@ -92,11 +78,7 @@ export default function VendorProductsPage() {
 
   const handleDelete = async (id: number) => {
     if (!confirm("Delete this product?")) return;
-<<<<<<< HEAD
     try { await api.delete(`/products/${id}/delete/`); await fetchProducts(); }
-=======
-    try { await api.delete(`/api/products/${id}/delete/`); await fetchProducts(); }
->>>>>>> 0a0f896ee012e76cbc8d5fdbe69fc242601ec1ff
     catch { alert("Failed to delete product"); }
   };
 

@@ -42,11 +42,7 @@ export default function VendorTrackingPage() {
 
   // Fetch accepted orders — exclude completed bookings
   useEffect(() => {
-<<<<<<< HEAD
     api.get("/vendor/material-orders/")
-=======
-    api.get("/api/vendor/material-orders/")
->>>>>>> 0a0f896ee012e76cbc8d5fdbe69fc242601ec1ff
       .then(res => {
         const all: ActiveOrder[] = Array.isArray(res.data) ? res.data : [];
         // Only show ACCEPTED orders (not FULFILLED/COMPLETED/REJECTED)
@@ -58,11 +54,7 @@ export default function VendorTrackingPage() {
   const fetchTracking = async () => {
     if (!bookingId) return;
     try {
-<<<<<<< HEAD
       const res = await api.get(`/booking/${bookingId}/track/`);
-=======
-      const res = await api.get(`/api/bookings/${bookingId}/track/`);
->>>>>>> 0a0f896ee012e76cbc8d5fdbe69fc242601ec1ff
       setData(res.data); setError("");
     } catch (err: unknown) {
       const e = err as { response?: { data?: { error?: string } } };

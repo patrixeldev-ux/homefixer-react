@@ -43,11 +43,7 @@ export default function VendorDashboard() {
 
   const fetchProfile = async () => {
     try {
-<<<<<<< HEAD
       const res = await api.get("/profile/");
-=======
-      const res = await api.get("/api/profile/");
->>>>>>> 0a0f896ee012e76cbc8d5fdbe69fc242601ec1ff
       setUser({ name: res.data.user.name, email: res.data.user.email, phone: res.data.user.phone });
       setProfile(res.data.profile);
     } catch { router.replace("/vendor"); }
@@ -55,22 +51,14 @@ export default function VendorDashboard() {
 
   const fetchOrders = async () => {
     try {
-<<<<<<< HEAD
       const res = await api.get("/vendor/material-orders/");
-=======
-      const res = await api.get("/api/vendor/material-orders/");
->>>>>>> 0a0f896ee012e76cbc8d5fdbe69fc242601ec1ff
       setOrders(Array.isArray(res.data) ? res.data : []);
     } catch { /* ignore */ }
   };
 
   const fetchProducts = async () => {
     try {
-<<<<<<< HEAD
       const res = await api.get("/products/");
-=======
-      const res = await api.get("/api/products/");
->>>>>>> 0a0f896ee012e76cbc8d5fdbe69fc242601ec1ff
       setProducts(Array.isArray(res.data) ? res.data : []);
     } catch { /* ignore */ }
   };

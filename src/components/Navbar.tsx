@@ -8,10 +8,10 @@ export default function Navbar() {
   const pathname = usePathname();
 
   // Hide on dashboard/app areas — they have their own sidebars
-  // Auth pages (/service-man/auth, /vendor/auth) are allowed through
+  // Registration pages (/customer/auth, /service-man/auth, /vendor/auth) are allowed through
   if (pathname.startsWith("/admin")) return null;
   if (pathname.startsWith("/service-man") && pathname !== "/service-man/auth") return null;
-  if (pathname.startsWith("/customer")) return null;
+  if (pathname.startsWith("/customer") && pathname !== "/customer-auth") return null;
   if (pathname.startsWith("/vendor") && pathname !== "/vendor/auth") return null;
 
   return (

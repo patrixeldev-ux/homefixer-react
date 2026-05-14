@@ -53,11 +53,7 @@ export default function BookingsPage() {
 
   const fetchBookings = async () => {
     try {
-<<<<<<< HEAD
       const res = await api.get("/serviceman/booking/");
-=======
-      const res = await api.get("/api/serviceman/bookings/");
->>>>>>> 0a0f896ee012e76cbc8d5fdbe69fc242601ec1ff
       const all = Array.isArray(res.data) ? res.data : res.data.results ?? [];
       setBookings(all);
     } catch { console.error("Failed to fetch bookings"); }
@@ -123,11 +119,7 @@ export default function BookingsPage() {
           {filtered.map(b => (
             <div
               key={b.id}
-<<<<<<< HEAD
               onClick={() => tab === "active" ? router.push(`/service-man/booking/${b.id}`) : undefined}
-=======
-              onClick={() => tab === "active" ? router.push(`/service-man/bookings/${b.id}`) : undefined}
->>>>>>> 0a0f896ee012e76cbc8d5fdbe69fc242601ec1ff
               className={`bg-white rounded-xl border border-gray-100 shadow-sm p-5 transition-all ${
                 tab === "active" ? "cursor-pointer hover:shadow-md hover:border-blue-200 group" : ""
               }`}

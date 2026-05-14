@@ -162,11 +162,7 @@ export default function ServicemanTrackingPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialStage, tracking.booking]);
 
-<<<<<<< HEAD
   const handleBack = () => router.push(`/service-man/booking/${bookingId}`);
-=======
-  const handleBack = () => router.push(`/service-man/bookings/${bookingId}`);
->>>>>>> 0a0f896ee012e76cbc8d5fdbe69fc242601ec1ff
   const handleRetry = () => window.location.reload();
 
   // ── Loading ──────────────────────────────────────────────────────────────────

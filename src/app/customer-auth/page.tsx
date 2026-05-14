@@ -2,12 +2,13 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import api from "../../../lib/api";
+import api from "../../lib/api";
+import Navbar from "../../components/Navbar";
 
 // Login is handled by the unified auth page at /auth.
-// This page handles vendor registration only.
+// This page handles customer registration only.
 
-export default function VendorAuthPage() {
+export default function CustomerAuthPage() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [step, setStep]       = useState(1);
@@ -15,7 +16,7 @@ export default function VendorAuthPage() {
   const [error, setError]     = useState("");
 
   const [form, setForm] = useState({
-    email: "", otp: "", companyName: "", phone: "", password: "",
+    email: "", otp: "", fullName: "", phone: "", password: "",
   });
 
   useEffect(() => { setMounted(true); }, []);
@@ -62,22 +63,22 @@ export default function VendorAuthPage() {
 
     /* STEP 3 — complete registration */
     if (step === 3) {
-      if (!form.companyName || !form.phone || !form.password)
+      if (!form.fullName || !form.phone || !form.password)
         return setError("All fields are required");
       setLoading(true);
       try {
         const res = await api.post("/auth/register/complete/", {
           email:    form.email,
-          name:     form.companyName,
+          name:     form.fullName,
           phone:    form.phone,
           password: form.password,
-          role:     "VENDOR",
+          role:     "CUSTOMER",
         });
         if (res.data.tokens) {
           localStorage.setItem("accessToken", res.data.tokens.access);
           localStorage.setItem("refreshToken", res.data.tokens.refresh);
-          localStorage.setItem("role", "VENDOR");
-          router.push("/vendor/dashboard");
+          localStorage.setItem("role", "CUSTOMER");
+          router.push("/customer/dashboard");
         }
       } catch (err: unknown) {
         const e = err as { response?: { data?: { detail?: string } } };
@@ -86,16 +87,17 @@ export default function VendorAuthPage() {
     }
   }
 
+  
   if (!mounted) return null;
 
   return (
     <main style={styles.page}>
       <div style={styles.glassCard}>
         <div style={styles.logo}>
-          <span style={styles.badge}>V</span>endor
+          <span style={styles.badge}>C</span>ustomer
         </div>
 
-        <h2 style={styles.title}>Register Your Business</h2>
+        <h2 style={styles.title}>Create Your Account</h2>
         <p style={styles.subtitle}>
           Already registered?{" "}
           <span style={styles.link} onClick={() => router.push("/auth")}>
@@ -109,7 +111,7 @@ export default function VendorAuthPage() {
               style={styles.input}
               name="email"
               type="email"
-              placeholder="Business email"
+              placeholder="Your email address"
               value={form.email}
               onChange={handleChange}
               autoFocus
@@ -122,7 +124,7 @@ export default function VendorAuthPage() {
               <input
                 style={styles.input}
                 name="otp"
-                placeholder="Enter OTP"
+                placeholder="Enter 6-digit OTP"
                 value={form.otp}
                 onChange={handleChange}
                 maxLength={6}
@@ -142,15 +144,16 @@ export default function VendorAuthPage() {
             <>
               <input
                 style={styles.input}
-                name="companyName"
-                placeholder="Company / Business name"
-                value={form.companyName}
+                name="fullName"
+                placeholder="Full name"
+                value={form.fullName}
                 onChange={handleChange}
               />
               <input
                 style={styles.input}
                 name="phone"
-                placeholder="Phone number (10 digits)"
+                type="tel"
+                placeholder="Phone number"
                 value={form.phone}
                 onChange={handleChange}
               />
@@ -167,7 +170,7 @@ export default function VendorAuthPage() {
 
           {error && <p style={styles.error}>{error}</p>}
 
-          <button style={styles.button} disabled={loading}>
+          <button style={{ ...styles.button, opacity: loading ? 0.7 : 1 }} disabled={loading}>
             {loading
               ? "Please wait..."
               : step === 1 ? "Send OTP →"
@@ -196,7 +199,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     minHeight: 560,
     padding: 40,
     borderRadius: 18,
-    background: "rgba(15,23,42,0.55)",
+    background: "rgba(15, 23, 42, 0.55)",
     backdropFilter: "blur(18px)",
     WebkitBackdropFilter: "blur(18px)",
     border: "1px solid rgba(255,255,255,0.15)",
@@ -204,11 +207,11 @@ const styles: { [key: string]: React.CSSProperties } = {
     color: "#fff",
   },
   logo:     { fontSize: 34, fontWeight: "bold", marginBottom: 18 },
-  badge:    { background: "#f59e0b", padding: "0 10px", borderRadius: 4, marginRight: 6 },
+  badge:    { background: "#3b82f6", padding: "0 10px", borderRadius: 4, marginRight: 6 },
   title:    { marginBottom: 6 },
   subtitle: { color: "#e5e7eb", marginBottom: 28 },
-  link:     { fontWeight: "bold", cursor: "pointer", color: "#fbbf24" },
-  hint:     { color: "#fbbf24", fontSize: 13, marginBottom: 10 },
+  link:     { fontWeight: "bold", cursor: "pointer", color: "#93c5fd" },
+  hint:     { color: "#93c5fd", fontSize: 13, marginBottom: 10 },
   input: {
     width: "100%",
     padding: 14,
@@ -218,13 +221,14 @@ const styles: { [key: string]: React.CSSProperties } = {
     background: "rgba(255,255,255,0.12)",
     color: "#fff",
     outline: "none",
+    fontSize: 14,
     boxSizing: "border-box" as const,
   },
   button: {
     width: "100%",
     padding: 14,
     borderRadius: 10,
-    background: "#f59e0b",
+    background: "#3b82f6",
     border: "none",
     color: "#fff",
     fontWeight: "bold",
@@ -232,6 +236,6 @@ const styles: { [key: string]: React.CSSProperties } = {
     cursor: "pointer",
     fontSize: 16,
   },
-  back:  { background: "none", border: "none", color: "#fbbf24", fontSize: 13, cursor: "pointer", padding: 0, marginBottom: 12 },
+  back:  { background: "none", border: "none", color: "#93c5fd", fontSize: 13, cursor: "pointer", padding: 0, marginBottom: 12 },
   error: { color: "#fca5a5", marginBottom: 10, fontSize: 14 },
 };

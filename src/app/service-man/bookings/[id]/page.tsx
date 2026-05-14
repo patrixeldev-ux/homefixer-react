@@ -113,11 +113,7 @@ export default function BookingDetailPage() {
 
   const fetchBooking = async () => {
     try {
-<<<<<<< HEAD
       const res = await api.get(`/booking/${bookingId}/details/`);
-=======
-      const res = await api.get(`/api/booking/${bookingId}/details/`);
->>>>>>> 0a0f896ee012e76cbc8d5fdbe69fc242601ec1ff
       setBooking(res.data);
     } catch {
       router.replace("/service-man/dashboard");
@@ -128,11 +124,7 @@ export default function BookingDetailPage() {
 
   const fetchCategories = async () => {
     try {
-<<<<<<< HEAD
       const res = await api.get("/product-categories/");
-=======
-      const res = await api.get("/api/product-categories/");
->>>>>>> 0a0f896ee012e76cbc8d5fdbe69fc242601ec1ff
       setCategories(Array.isArray(res.data) ? res.data : []);
     } catch { console.error("Categories fetch failed"); }
   };
@@ -142,11 +134,7 @@ export default function BookingDetailPage() {
     if (!serviceCharge) return;
     setSavingCharge(true);
     try {
-<<<<<<< HEAD
       await api.patch(`/booking/${bookingId}/service-charge/`, {
-=======
-      await api.patch(`/api/booking/${bookingId}/service-charge/`, {
->>>>>>> 0a0f896ee012e76cbc8d5fdbe69fc242601ec1ff
         service_charge: serviceCharge,
       });
       await fetchBooking();
@@ -163,11 +151,7 @@ export default function BookingDetailPage() {
     setVendorsLoading(true);
     try {
       const res = await api.get(
-<<<<<<< HEAD
         `/booking/${bookingId}/vendors/nearby/?category_id=${categoryId}`
-=======
-        `/api/booking/${bookingId}/vendors/nearby/?category_id=${categoryId}`
->>>>>>> 0a0f896ee012e76cbc8d5fdbe69fc242601ec1ff
       );
       setVendors(res.data.vendors ?? []);
     } catch {
@@ -190,11 +174,7 @@ export default function BookingDetailPage() {
   setProductsLoading(true);
   try {
     const res = await api.get(
-<<<<<<< HEAD
       `/booking/${bookingId}/vendors/${vendor.vendor_id}/products/?category_id=${selectedCategory.id}`
-=======
-      `/api/booking/${bookingId}/vendors/${vendor.vendor_id}/products/?category_id=${selectedCategory.id}`
->>>>>>> 0a0f896ee012e76cbc8d5fdbe69fc242601ec1ff
     );
     setProducts(res.data.products ?? []);
     setStep("products");
@@ -235,11 +215,7 @@ export default function BookingDetailPage() {
     if (!selectedVendor || !selectedCategory || cart.length === 0) return;
     setOrdering(true);
     try {
-<<<<<<< HEAD
       await api.post("/material-orders/create/", {
-=======
-      await api.post("/api/material-orders/create/", {
->>>>>>> 0a0f896ee012e76cbc8d5fdbe69fc242601ec1ff
         booking_id: parseInt(bookingId),
         vendor_id: selectedVendor.vendor_id,   // ✅ fixed
         category_id: selectedCategory.id,
@@ -262,11 +238,7 @@ export default function BookingDetailPage() {
     setCompleting(true);
     setConfirmingDone(false);
     try {
-<<<<<<< HEAD
       await api.patch(`/booking/${bookingId}/complete/`);
-=======
-      await api.patch(`/api/booking/${bookingId}/complete/`);
->>>>>>> 0a0f896ee012e76cbc8d5fdbe69fc242601ec1ff
       // Set local flag immediately so UI reacts even if backend
       // doesn't return serviceman_marked_done in the details response
       setMarkedDoneLocally(true);
@@ -602,11 +574,7 @@ export default function BookingDetailPage() {
             
             setSavingCharge(true);
             try {
-<<<<<<< HEAD
               await api.patch(`/booking/${bookingId}/service-charge/`, {
-=======
-              await api.patch(`/api/booking/${bookingId}/service-charge/`, {
->>>>>>> 0a0f896ee012e76cbc8d5fdbe69fc242601ec1ff
                 service_charge: serviceCharge,
               });
               await fetchBooking();

@@ -12,7 +12,7 @@ export default function ChooseRole() {
       desc:         "Book verified professionals for any home service, instantly.",
       icon:         "🏠",
       color:        "blue",
-      registerPath: "/auth",
+      registerPath: "/customer-auth",
     },
     {
       key:          "vendor",
