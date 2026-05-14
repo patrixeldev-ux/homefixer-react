@@ -11,6 +11,8 @@
   "dependencies": {
     "@headlessui/react": "^2.2.9",
     "@react-google-maps/api": "^2.20.8",
+    "@stripe/react-stripe-js": "^6.3.0",
+    "@stripe/stripe-js": "^9.5.0",
     "apexcharts": "^5.3.6",
     "axios": "^1.13.2",
     "datatables.net": "^2.3.6",
