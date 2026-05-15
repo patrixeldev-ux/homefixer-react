@@ -57,25 +57,118 @@ export default function VendorProfilePage() {
   };
 
   const handleSave = async () => {
-    setSaving(true); setError(""); setSuccess("");
-    try {
-      const data = new FormData();
-      data.append("business_name", businessName); data.append("full_address", fullAddress);
-      data.append("city", city); data.append("state", stateName);
-      data.append("contact_number", contactNumber);
-      data.append("opening_time", openingTime); data.append("closing_time", closingTime);
-      data.append("store_lat", storeLat); data.append("store_long", storeLong);
-      data.append("account_holder_name", accountHolderName);
-      data.append("bank_name", bankName); data.append("account_number", accountNumber);
-      data.append("ifsc_code", ifscCode);
-      await api.put("/profile/vendor/update/", data, { headers: { "Content-Type": "multipart/form-data" } });
-      setSuccess("Profile updated successfully!");
-      setTimeout(() => setSuccess(""), 3000);
-    } catch (err: unknown) {
-      const e = err as { response?: { data?: { detail?: string } } };
-      setError(e?.response?.data?.detail || "Failed to update profile");
-    } finally { setSaving(false); }
-  };
+  setSaving(true);
+  setError("");
+  setSuccess("");
+
+  try {
+    const data = new FormData();
+
+    // Business details
+    if (businessName.trim()) {
+      data.append("business_name", businessName.trim());
+    }
+
+    if (fullAddress.trim()) {
+      data.append("full_address", fullAddress.trim());
+    }
+
+    if (city.trim()) {
+      data.append("city", city.trim());
+    }
+
+    if (stateName.trim()) {
+      data.append("state", stateName.trim());
+    }
+
+    if (contactNumber.trim()) {
+      data.append("contact_number", contactNumber.trim());
+    }
+
+    // Time fields
+    if (openingTime) {
+      data.append("opening_time", openingTime);
+    }
+
+    if (closingTime) {
+      data.append("closing_time", closingTime);
+    }
+
+    // Store coordinates
+    if (
+      storeLat !== "" &&
+      !isNaN(Number(storeLat))
+    ) {
+      data.append(
+        "store_lat",
+        Number(storeLat).toString()
+      );
+    }
+
+    if (
+      storeLong !== "" &&
+      !isNaN(Number(storeLong))
+    ) {
+      data.append(
+        "store_long",
+        Number(storeLong).toString()
+      );
+    }
+
+    // Bank details
+    if (accountHolderName.trim()) {
+      data.append(
+        "account_holder_name",
+        accountHolderName.trim()
+      );
+    }
+
+    if (bankName.trim()) {
+      data.append("bank_name", bankName.trim());
+    }
+
+    if (accountNumber.trim()) {
+      data.append(
+        "account_number",
+        accountNumber.trim()
+      );
+    }
+
+    if (ifscCode.trim()) {
+      data.append("ifsc_code", ifscCode.trim());
+    }
+
+    const response = await api.put(
+      "/profile/vendor/update/",
+      data,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
+
+    console.log("SUCCESS:", response.data);
+
+    setSuccess("Profile updated successfully!");
+    setTimeout(() => setSuccess(""), 3000);
+
+  } catch (err: any) {
+    console.error(
+      "FULL BACKEND ERROR:",
+      err?.response?.data
+    );
+
+    setError(
+      JSON.stringify(err?.response?.data) ||
+      "Failed to update profile"
+    );
+
+  } finally {
+    setSaving(false);
+  }
+};
+
 
   if (loading) return (
     <div className="flex items-center justify-center h-64">

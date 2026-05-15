@@ -90,7 +90,7 @@ export default function VendorOrdersPage() {
 
   const fetchOrders = async () => {
     try {
-      const res = await api.get("/vendor/material-orders/");
+      const res = await api.get("/vendor/orders/");
       setOrders(Array.isArray(res.data) ? res.data : []);
     } catch (err: unknown) {
       const e = err as { response?: { status?: number; data?: unknown } };
@@ -104,7 +104,7 @@ export default function VendorOrdersPage() {
   const handleAction = async (orderId: number, action: "accept" | "reject") => {
     setActionLoading(orderId);
     try {
-      await api.patch(`/vendor/material-orders/${orderId}/action/`, { action });
+      await api.patch(`/vendor/order/{order_id}/accept/`, { action });
       await fetchOrders();
       if (selected?.id === orderId) setSelected(null);
     } catch (err: unknown) {

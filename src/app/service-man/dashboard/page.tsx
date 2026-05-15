@@ -62,7 +62,7 @@ export default function ServiceManDashboard() {
 
   const fetchBookings = async () => {
     try {
-      const res = await api.get("/serviceman/booking/");
+      const res = await api.get("/serviceman/bookings/");
       const data = Array.isArray(res.data) ? res.data : res.data.results ?? [];
       setBookings(data);
     } catch (err) { console.error("Bookings fetch failed", err); }
@@ -96,27 +96,27 @@ export default function ServiceManDashboard() {
   ];
 
   // Add this effect — auto-sends location every 10s when online
-  useEffect(() => {
-    if (!isOnline) return;
+ useEffect(() => {
+  if (!isOnline) return;
 
-    const sendLocation = () => {
-      if (!navigator.geolocation) return;
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          api.post("/serviceman/location/update/", {
-            lat: pos.coords.latitude,
-            lon: pos.coords.longitude,
-          }).catch(() => {});
-        },
-        (err) => console.warn("Location denied:", err),
-        { enableHighAccuracy: false }
-      );
-    };
+  const sendLocation = () => {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        api.patch("/serviceman/location/update/", {  // ← post → patch
+          lat: pos.coords.latitude,
+          lon: pos.coords.longitude,
+        }).catch(() => {});
+      },
+      (err) => console.warn("Location denied:", err),
+      { enableHighAccuracy: false }
+    );
+  };
 
-    sendLocation(); // immediately on going online
-    const interval = setInterval(sendLocation, 10_000); // every 10s
-    return () => clearInterval(interval);
-  }, [isOnline]);
+  sendLocation();
+  const interval = setInterval(sendLocation, 10_000);
+  return () => clearInterval(interval);
+}, [isOnline]);
 
   const pending  = bookings.filter(b => b.status === "PENDING");
   const active   = bookings.filter(b => ["ACCEPTED", "ONGOING"].includes(b.status));
