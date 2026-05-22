@@ -61,7 +61,7 @@ export default function UserRequestsPage() {
   const fetchRequests = async () => {
     setLoading(true);
     try {
-      const res = await api.get("/serviceman/booking/");
+      const res = await api.get("/serviceman/bookings/");
       const all = Array.isArray(res.data) ? res.data : res.data.results ?? [];
       setBookings(all.filter((b: Booking) => b.status === "PENDING"));
     } catch (err) {

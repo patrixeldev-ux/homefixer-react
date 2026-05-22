@@ -1,235 +1,644 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import api from "../../../lib/api";
+import axios from "axios";
+import { useRef } from "react";
 
-/* ---------------- TYPES ---------------- */
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  Layers3,
+  Bell,
+} from "lucide-react";
+
+const API_BASE =
+  process.env.NEXT_PUBLIC_API_URL ||
+  "https://home-fixer-production.up.railway.app/api";
+
 interface Category {
   id: number;
   name: string;
-  icon_url?: string | null;
-  type: "SERVICE" | "PRODUCT";
-  serviceCount?: number;
+  category_type: "SERVICE" | "PRODUCT";
 }
 
-/* ---------------- PAGE ---------------- */
 export default function CategoriesPage() {
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [name, setName] = useState("");
-  const [iconUrl, setIconUrl] = useState("");
-  const [type, setType] = useState<"SERVICE" | "PRODUCT">("SERVICE");
-  const [editingId, setEditingId] = useState<number | null>(null);
 
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [categories, setCategories] =
+    useState<Category[]>([]);
 
-  /* -------- FETCH CATEGORIES -------- */
-  const fetchCategories = async () => {
-    setLoading(true);
-    setError(null);
+  const [loading, setLoading] =
+    useState(false);
 
-    try {
-      const res = await api.get("/admin/categories");
+  const [error, setError] =
+    useState<string | null>(null);
 
-      const rawCategories: any[] = Array.isArray(res.data)
-        ? res.data
-        : Array.isArray(res.data?.data)
-        ? res.data.data
-        : [];
+  const [success, setSuccess] =
+    useState("");
 
-      const mapped: Category[] = rawCategories.map((cat: any) => ({
-        id: cat.id,
-        name: cat.name || "-",
-        icon_url: cat.icon_url ?? null,
-        type: cat.type,
-        serviceCount: cat.serviceCount ?? cat.services_count ?? 0,
-      }));
+  const [name, setName] =
+    useState("");
 
-      setCategories(mapped);
-    } catch (err) {
-      console.error("FETCH CATEGORIES ERROR:", err);
-      setError("Failed to load categories");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [categoryType, setCategoryType] =
+    useState<"SERVICE" | "PRODUCT">(
+      "SERVICE"
+    );
+
+  const [editingId, setEditingId] =
+    useState<number | null>(null);
+
+  const [showNotifications, setShowNotifications] =
+    useState(false);
 
   useEffect(() => {
     fetchCategories();
   }, []);
 
-  /* -------- ADD / UPDATE CATEGORY -------- */
+  const getHeaders = () => {
+
+    const token =
+      localStorage.getItem("accessToken");
+
+    return token
+      ? {
+          Authorization: `Bearer ${token}`,
+        }
+      : {};
+  };
+
+  const fetchCategories = async () => {
+
+    try {
+
+      setLoading(true);
+
+      const response = await axios.get(
+        `${API_BASE}/admin/categories/all/`,
+        {
+          headers: getHeaders(),
+        }
+      );
+
+      const mapped =
+        response.data.map((cat: any) => ({
+          id: cat.id,
+          name: cat.name,
+          category_type:
+            cat.category_type || cat.type,
+        }));
+
+      const sorted = [...mapped].sort(
+        (a, b) =>
+          a.name.localeCompare(b.name)
+      );
+
+      setCategories(sorted);
+
+    } catch (err) {
+
+      console.error(err);
+
+      setError(
+        "Failed to load categories"
+      );
+
+    } finally {
+
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = async () => {
+
     if (!name.trim()) return;
 
     setLoading(true);
     setError(null);
+    setSuccess("");
+
+    /*
+      =========================
+      DUPLICATE PREVENTION
+      =========================
+    */
+
+    const exists = categories.some(
+      (cat) =>
+        cat.name.toLowerCase() ===
+          name.trim().toLowerCase() &&
+        cat.id !== editingId
+    );
+
+    if (exists) {
+
+      setError(
+        "Category already exists"
+      );
+
+      setLoading(false);
+
+      return;
+    }
+
+    const optimisticCategory = {
+      id: editingId || Date.now(),
+      name: name.trim(),
+      category_type: categoryType,
+    };
 
     try {
-      const payload = {
-        name: name.trim(),
-        icon_url: iconUrl.trim() || null,
-        type,
-      };
+
+      /*
+        =========================
+        OPTIMISTIC UI UPDATE
+        =========================
+      */
 
       if (editingId) {
-        await api.put(`/admin/categories/${editingId}`, payload);
+
+        setCategories((prev) =>
+          prev.map((cat) =>
+            cat.id === editingId
+              ? optimisticCategory
+              : cat
+          )
+        );
+
       } else {
-        await api.post("/admin/categories", payload);
+
+        setCategories((prev) => [
+          optimisticCategory,
+          ...prev,
+        ]);
       }
 
+      const payload = {
+        name: name.trim(),
+        category_type: categoryType,
+      };
+
+      /*
+        =========================
+        REAL API CALL
+        =========================
+      */
+
+      if (editingId) {
+
+        await axios.patch(
+          `${API_BASE}/admin/categories/${editingId}/`,
+          payload,
+          {
+            headers: getHeaders(),
+          }
+        );
+
+        setSuccess(
+          "Category updated successfully"
+        );
+
+      } else {
+
+        await axios.post(
+          `${API_BASE}/admin/categories/create/`,
+          payload,
+          {
+            headers: getHeaders(),
+          }
+        );
+
+        setSuccess(
+          "Category created successfully"
+        );
+      }
+
+      /*
+        =========================
+        RESET FORM
+        =========================
+      */
+
       setName("");
-      setIconUrl("");
-      setType("SERVICE");
+      setCategoryType("SERVICE");
       setEditingId(null);
 
+      /*
+        =========================
+        REFRESH REAL DATA
+        =========================
+      */
+
       fetchCategories();
-    } catch (err) {
-      console.error("SAVE CATEGORY ERROR:", err);
-      setError(editingId ? "Failed to update category" : "Failed to create category");
+
+    } catch (err: any) {
+
+      console.error(
+        "CATEGORY SAVE ERROR:",
+        err?.response?.data || err
+      );
+
+      setError(
+        editingId
+          ? "Failed to update category"
+          : "Failed to create category"
+      );
+
+      /*
+        =========================
+        ROLLBACK
+        =========================
+      */
+
+      fetchCategories();
+
     } finally {
+
       setLoading(false);
     }
   };
 
-  /* -------- EDIT CATEGORY -------- */
-  const handleEdit = (cat: Category) => {
-    setEditingId(cat.id);
-    setName(cat.name);
-    setIconUrl(cat.icon_url || "");
-    setType(cat.type);
-  };
+  const handleDelete = async (
+    id: number
+  ) => {
 
-  /* -------- DELETE CATEGORY -------- */
-  const handleDelete = async (id: number) => {
-    if (!confirm("Are you sure you want to delete this category?")) return;
+    const confirmed =
+      window.confirm(
+        "Delete this category?"
+      );
 
-    setLoading(true);
-    setError(null);
+    if (!confirmed) return;
+
+    const oldCategories = [...categories];
 
     try {
-      await api.delete(`/admin/categories/${id}`);
-      setCategories(prev => prev.filter(cat => cat.id !== id));
-    } catch (err: any) {
-      const message =
-        err?.response?.data?.message || "Cannot delete category with active services";
-      alert(message);
-    } finally {
-      setLoading(false);
+
+      /*
+        =========================
+        OPTIMISTIC DELETE
+        =========================
+      */
+
+      setCategories((prev) =>
+        prev.filter(
+          (cat) => cat.id !== id
+        )
+      );
+
+      await axios.delete(
+        `${API_BASE}/admin/categories/${id}/`,
+        {
+          headers: getHeaders(),
+        }
+      );
+
+      setSuccess(
+        "Category deleted successfully"
+      );
+
+    } catch (err) {
+
+      console.error(err);
+
+      setError(
+        "Failed to delete category"
+      );
+
+      /*
+        =========================
+        ROLLBACK
+        =========================
+      */
+
+      setCategories(oldCategories);
     }
+  };
+
+  const handleEdit = (
+    category: Category
+  ) => {
+
+    setEditingId(category.id);
+
+    setName(category.name);
+
+    setCategoryType(
+      category.category_type
+    );
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
   };
 
   return (
-    <div className="p-8 bg-gray-50 min-h-screen space-y-8">
-      {/* ---------- HEADER ---------- */}
-      <h1 className="text-3xl font-bold text-gray-900">
-        Categories Management
-      </h1>
+    <div className="p-6 bg-[#f7f8fc] min-h-screen">
 
-      {/* ---------- ADD / EDIT ---------- */}
-      <div className="bg-white p-6 rounded-2xl shadow">
-        <h2 className="text-xl font-semibold mb-4">
-          {editingId ? "Update Category" : "Add New Category"}
-        </h2>
+      {/* ================= NAVBAR ================= */}
 
-        <div className="grid md:grid-cols-4 gap-4">
-          <input
-            placeholder="Category Name"
-            value={name}
-            onChange={e => setName(e.target.value)}
-            className="p-3 border rounded-lg focus:ring-2 focus:ring-blue-400"
-          />
+      <div className="w-full bg-white border border-slate-200 rounded-3xl px-6 py-5 flex items-center justify-between shadow-sm mb-8">
 
-          <input
-            placeholder="Icon URL (optional)"
-            value={iconUrl}
-            onChange={e => setIconUrl(e.target.value)}
-            className="p-3 border rounded-lg focus:ring-2 focus:ring-blue-400"
-          />
+        <div>
+          <h1 className="text-4xl font-bold text-slate-900">
+            Categories
+          </h1>
 
-          <select
-            value={type}
-            onChange={e => setType(e.target.value as "SERVICE" | "PRODUCT")}
-            className="p-3 border rounded-lg focus:ring-2 focus:ring-blue-400"
+          <p className="text-slate-500 mt-2">
+            Manage product and service
+            categories
+          </p>
+        </div>
+
+        <div className="flex items-center gap-4">
+
+          {/* NOTIFICATION */}
+
+          <div className="relative">
+
+          <button
+              onClick={() =>
+                setShowNotifications(
+                  !showNotifications
+                )
+              }
+              className="relative w-12 h-12 rounded-2xl bg-slate-100 hover:bg-slate-200 transition flex items-center justify-center"
+            >
+
+              <Bell className="w-5 h-5 text-slate-700" />
+
+              <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-red-500"></span>
+            </button>
+
+            {showNotifications && (
+
+              <div className="absolute right-0 top-16 w-[320px] bg-white border border-slate-200 rounded-3xl shadow-xl p-4 z-50">
+
+                <div className="flex items-center justify-between mb-4">
+
+                  <h3 className="font-bold text-slate-900">
+                    Notifications
+                  </h3>
+
+                  <span className="text-xs text-slate-500">
+                    Admin Alerts
+                  </span>
+                </div>
+
+                <div className="flex flex-col gap-3">
+
+                  <div className="p-4 rounded-2xl bg-cyan-50 border border-cyan-100">
+
+                    <p className="text-sm font-semibold text-slate-900">
+                      Categories Updated
+                    </p>
+
+                    <p className="text-xs text-slate-500 mt-1">
+                      Manage service and product categories
+                    </p>
+                  </div>
+                </div>
+              </div>
+              )}
+
+          </div>
+
+          {/* LOGOUT */}
+
+          <button
+            onClick={() => {
+
+              localStorage.removeItem(
+                "accessToken"
+              );
+
+              localStorage.removeItem(
+                "refreshToken"
+              );
+
+              window.location.href =
+                "/auth";
+            }}
+            className="px-6 py-3 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-semibold transition-all"
           >
-            <option value="SERVICE">Service</option>
-            <option value="PRODUCT">Product</option>
-          </select>
+            Logout
+          </button>
+        </div>
+      </div>
+
+      {/* ================= FORM ================= */}
+
+      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 mb-8">
+
+        <div className="flex items-center gap-3 mb-6">
+
+          <div className="w-14 h-14 rounded-2xl bg-cyan-100 text-cyan-700 flex items-center justify-center">
+            <Layers3 />
+          </div>
+
+          <div>
+            <h2 className="text-3xl font-bold text-slate-900">
+              {editingId
+                ? "Edit Category"
+                : "Create Category"}
+            </h2>
+
+            <p className="text-slate-500 mt-1">
+              Add and manage platform
+              categories
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+
+          {/* NAME */}
+
+          <div>
+
+            <label className="text-sm font-medium text-slate-700 mb-2 block">
+              Category Name
+            </label>
+
+            <input
+              value={name}
+              onChange={(e) =>
+                setName(e.target.value)
+              }
+              placeholder="Enter category name"
+              className="w-full px-4 py-4 rounded-2xl border border-slate-200 outline-none focus:ring-2 focus:ring-cyan-400 text-black"
+            />
+          </div>
+
+          {/* TYPE */}
+
+          <div>
+
+            <label className="text-sm font-medium text-slate-700 mb-2 block">
+              Category Type
+            </label>
+
+            <select
+              value={categoryType}
+              onChange={(e) =>
+                setCategoryType(
+                  e.target.value as any
+                )
+              }
+              className="w-full px-4 py-4 rounded-2xl border border-slate-200 outline-none focus:ring-2 focus:ring-cyan-400 text-black"
+            >
+              <option value="SERVICE">
+                SERVICE
+              </option>
+
+              <option value="PRODUCT">
+                PRODUCT
+              </option>
+            </select>
+          </div>
+        </div>
+
+        {/* ERROR */}
+
+        {error && (
+
+          <div className="mt-5 bg-red-100 text-red-700 px-4 py-3 rounded-2xl">
+            {error}
+          </div>
+        )}
+
+        {/* SUCCESS */}
+
+        {success && (
+
+          <div className="mt-5 bg-green-100 text-green-700 px-4 py-3 rounded-2xl">
+            {success}
+          </div>
+        )}
+
+        {/* BUTTONS */}
+
+        <div className="flex gap-4 mt-6">
 
           <button
             onClick={handleSubmit}
             disabled={loading}
-            className={`text-white rounded-lg font-semibold transition-all duration-300 ${
-              editingId
-                ? "bg-green-600 hover:bg-green-700"
-                : "bg-blue-600 hover:bg-blue-700"
+            className={`bg-cyan-600 hover:bg-cyan-700
+            text-white px-6 py-4 rounded-2xl
+            font-semibold transition-all
+            flex items-center gap-2 ${
+              loading
+                ? "opacity-60 cursor-not-allowed"
+                : ""
             }`}
           >
-            {editingId ? "Update" : "Add"}
-          </button>
-        </div>
 
-        {error && <p className="mt-3 text-red-500">{error}</p>}
+            <Plus size={18} />
+
+            {editingId
+              ? "Update Category"
+              : "Create Category"}
+          </button>
+
+          {editingId && (
+
+            <button
+              onClick={() => {
+
+                setEditingId(null);
+
+                setName("");
+
+                setCategoryType(
+                  "SERVICE"
+                );
+              }}
+              className="bg-slate-200 hover:bg-slate-300 text-slate-800 px-6 py-4 rounded-2xl font-semibold transition-all"
+            >
+              Cancel
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* ---------- CATEGORY LIST AS CARDS ---------- */}
-      <div className="bg-white p-6 rounded-2xl shadow">
-        <h2 className="text-xl font-semibold mb-6">Existing Categories</h2>
+      {/* ================= EMPTY STATE ================= */}
 
-        {loading && <p className="text-gray-500">Loading...</p>}
+      {categories.length === 0 &&
+        !loading && (
 
-        {!loading && categories.length === 0 && (
-          <p className="text-gray-500">No categories found</p>
-        )}
+        <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center shadow-sm">
 
-        <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {categories.map(cat => (
-            <div
-              key={cat.id}
-              className="bg-white border rounded-2xl shadow hover:shadow-xl transition-shadow duration-300 p-5 flex flex-col justify-between"
-            >
-              {/* Icon */}
-              <div className="flex justify-center mb-4">
-                {cat.icon_url ? (
-                  <img
-                    src={cat.icon_url}
-                    alt={cat.name}
-                    className="h-16 w-16 object-contain"
-                  />
-                ) : (
-                  <div className="h-16 w-16 bg-gray-200 rounded-full flex items-center justify-center text-gray-400 text-xl">
-                    {cat.name.charAt(0)}
-                  </div>
-                )}
-              </div>
+          <h3 className="text-2xl font-bold text-slate-800">
+            No Categories Found
+          </h3>
 
-              {/* Name & Info */}
-              <div className="text-center mb-4">
-                <p className="font-semibold text-lg">{cat.name}</p>
-                <p className="text-sm text-gray-500">
-                  Type: {cat.type} | Services: {cat.serviceCount ?? 0}
-                </p>
-              </div>
-
-              {/* Actions */}
-              <div className="flex justify-center gap-3">
-                <button
-                  onClick={() => handleEdit(cat)}
-                  className="px-4 py-2 bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200 transition-colors"
-                >
-                  Edit
-                </button>
-
-                <button
-                  onClick={() => handleDelete(cat.id)}
-                  className="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors"
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          ))}
+          <p className="text-slate-500 mt-3">
+            Create your first category
+          </p>
         </div>
+      )}
+
+      {/* ================= LIST ================= */}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+
+        {categories.map((category) => (
+
+          <div
+            key={category.id}
+            className={`border-2 rounded-3xl p-6 shadow-sm hover:shadow-lg transition-all ${
+              category.category_type ===
+              "SERVICE"
+                ? "bg-gradient-to-br from-cyan-50 to-cyan-100 border-cyan-400"
+                : "bg-gradient-to-br from-violet-50 to-violet-100 border-violet-400"
+            }`}
+          >
+
+            <div className="flex items-center justify-between">
+
+              <div
+                className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                  category.category_type ===
+                  "SERVICE"
+                    ? "bg-cyan-600 text-white"
+                    : "bg-violet-600 text-white"
+                }`}
+              >
+                {category.category_type}
+              </div>
+
+              <Layers3 className="text-slate-700" />
+            </div>
+
+            <h3 className="text-2xl font-bold text-slate-900 mt-6">
+              {category.name}
+            </h3>
+
+            <div className="flex gap-3 mt-6">
+
+              <button
+                onClick={() =>
+                  handleEdit(category)
+                }
+                className="flex-1 bg-slate-900 hover:bg-black text-white py-3 rounded-2xl font-semibold transition-all flex items-center justify-center gap-2"
+              >
+                <Pencil size={16} />
+                Edit
+              </button>
+
+              <button
+                onClick={() =>
+                  handleDelete(
+                    category.id
+                  )
+                }
+                className="flex-1 bg-red-600 hover:bg-red-700 text-white py-3 rounded-2xl font-semibold transition-all flex items-center justify-center gap-2"
+              >
+                <Trash2 size={16} />
+                Delete
+              </button>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

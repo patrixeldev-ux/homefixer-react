@@ -36,7 +36,7 @@ const Withdrawal: React.FC = () => {
       const adminToken = localStorage.getItem("adminToken");
       
       if (!adminToken) {
-        router.push("/admin/login");
+        router.push("/auth");
       } else {
         setLoading(false);
       }

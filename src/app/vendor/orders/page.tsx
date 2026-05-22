@@ -104,7 +104,12 @@ export default function VendorOrdersPage() {
   const handleAction = async (orderId: number, action: "accept" | "reject") => {
     setActionLoading(orderId);
     try {
-      await api.patch(`/vendor/order/{order_id}/accept/`, { action });
+      if (action === "accept") {
+        await api.patch(`/vendor/order/${orderId}/accept/`);
+      } else {
+        alert("Reject is not supported by the API. The order will expire if not accepted in time.");
+        return;
+      }
       await fetchOrders();
       if (selected?.id === orderId) setSelected(null);
     } catch (err: unknown) {

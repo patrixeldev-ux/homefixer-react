@@ -65,7 +65,7 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
         <DashboardTopbar
           roleLabel="Customer"
           accentClass="bg-blue-600"
-          logoutEndpoint="/api/auth/logout/"
+          logoutEndpoint="/auth/logout/"
           logoutRedirect="/auth"
           checkFinalPayment={true}
         />

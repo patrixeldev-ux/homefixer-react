@@ -53,9 +53,13 @@ export default function BookingsPage() {
 
   const fetchBookings = async () => {
     try {
-      const res = await api.get("/serviceman/booking/");
-      const all = Array.isArray(res.data) ? res.data : res.data.results ?? [];
-      setBookings(all);
+      const [activeRes, historyRes] = await Promise.all([
+        api.get("/serviceman/bookings/"),
+        api.get("/serviceman/bookings/history/"),
+      ]);
+      const active  = Array.isArray(activeRes.data)  ? activeRes.data  : activeRes.data?.results  ?? [];
+      const history = Array.isArray(historyRes.data) ? historyRes.data : historyRes.data?.results ?? [];
+      setBookings([...active, ...history]);
     } catch { console.error("Failed to fetch bookings"); }
     finally { setLoading(false); }
   };

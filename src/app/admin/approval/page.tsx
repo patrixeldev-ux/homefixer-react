@@ -1,681 +1,556 @@
 "use client";
 
-import React, { useMemo, useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
+import axios from "axios";
 import {
-  CheckCircle,
-  XCircle,
-  Clock3,
   Search,
-  Filter,
-  BadgeCheck,
-  Users,
-  Wallet,
+  CheckCircle,
+  Clock3,
+  XCircle,
+  User,
+  ShieldCheck,
+  Store,
 } from "lucide-react";
-import { useRouter } from "next/dist/client/components/navigation";
 
-interface RequestType {
+const API_BASE =
+  process.env.NEXT_PUBLIC_API_URL ||
+  "https://home-fixer-production.up.railway.app/api";
+
+interface ApprovalRequest {
   id: number;
   name: string;
   email: string;
-  phone: string;
-  role: "Customer" | "Vendor" | "Service Man";
-  city: string;
-  service: string;
-  experience: string;
-  amount: string;
-  status: "Pending" | "Approved" | "Rejected";
+  phone?: string;
+
+  role:
+    | "CUSTOMER"
+    | "SERVICEMAN"
+    | "VENDOR";
+
+  status:
+    | "APPROVED"
+    | "REJECTED"
+    | "PENDING";
+
+  created_at?: string;
+
+  skills?: string[] | string;
+  experience_years?: number;
+
+  business_name?: string;
+
+  address?: string;
+
+  is_approved?: boolean;
+  is_active?: boolean;
 }
 
-type PageType =
-  | "approval"
-  | "users"
-  | "money";
+export default function ApprovalPage() {
 
-const Adminapproval: React.FC = () => {
-  const router = useRouter();
+  const [requests, setRequests] =
+    useState<ApprovalRequest[]>([]);
 
-  const [loading, setLoading] = useState(true);
-  
-    useEffect(() => {
-      const adminToken = localStorage.getItem("adminToken");
-      
-      if (!adminToken) {
-        router.push("/admin/login");
-      } else {
-        setLoading(false);
-      }
-  
-    }, [router]);
-  
-      if (loading) {
-      return (
-        <div className="h-screen flex items-center justify-center bg-gray-50">
-          <div className="text-2xl font-bold text-blue-600">
-            Loading ...
-          </div>
-        </div>
-      );
-    }
-  
-  const [pageType, setPageType] =
-    useState<PageType>("approval");
+  const [loading, setLoading] =
+    useState(true);
+
+  const [search, setSearch] =
+    useState("");
 
   const [roleFilter, setRoleFilter] =
-    useState<string>("All");
-
+    useState("ALL");
+  
   const [statusFilter, setStatusFilter] =
-    useState<string>("Pending");
+    useState("PENDING");
 
-  const [searchTerm, setSearchTerm] =
-    useState<string>("");
+  useEffect(() => {
+    fetchRequests();
+  }, []);
 
-  const [requests, setRequests] = useState<
-    RequestType[]
-  >([
-    {
-      id: 101,
-      name: "Sunil Sharma",
-      email: "sunil@gmail.com",
-      phone: "+91 9876543210",
-      role: "Service Man",
-      city: "Ahmedabad",
-      service: "AC Repair",
-      experience: "4 Years",
-      amount: "₹12,000",
-      status: "Pending",
-    },
+  const [actionLoading, setActionLoading] =
+    useState<number | null>(null);
 
-    {
-      id: 102,
-      name: "Meera Patel",
-      email: "meera@gmail.com",
-      phone: "+91 9988776655",
-      role: "Vendor",
-      city: "Surat",
-      service: "Home Cleaning Products",
-      experience: "2 Years",
-      amount: "₹18,000",
-      status: "Approved",
-    },
+  const fetchRequests = async () => {
 
-    {
-      id: 103,
-      name: "Jayesh Verma",
-      email: "jayesh@gmail.com",
-      phone: "+91 9090909090",
-      role: "Service Man",
-      city: "Vadodara",
-      service: "Electrician",
-      experience: "5 Years",
-      amount: "₹9,500",
-      status: "Rejected",
-    },
+    try {
 
-    {
-      id: 104,
-      name: "Priya Shah",
-      email: "priya@gmail.com",
-      phone: "+91 8888888888",
-      role: "Vendor",
-      city: "Rajkot",
-      service: "Plumbing",
-      experience: "3 Years",
-      amount: "₹1,000",
-      status: "Approved",
-    },
-  ]);
+      setLoading(true);
 
-  // ================= APPROVE =================
-  const approveUser = (id: number): void => {
-    const updatedRequests = requests.map((user) =>
-      user.id === id
-        ? {
-            ...user,
-            status: "Approved",
-          }
-        : user
-    ) as RequestType[];
+      const token =
+        localStorage.getItem("accessToken");
 
-    setRequests(updatedRequests);
+      const headers = {
+        Authorization: `Bearer ${token}`,
+      };
+
+      const [
+        servicemenRes,
+        vendorsRes,
+      ] = await Promise.all([
+        axios.get(
+          `${API_BASE}/admin/servicemen/pending/`,
+          { headers }
+        ),
+
+        axios.get(
+          `${API_BASE}/admin/vendors/pending/`,
+          { headers }
+        ),
+      ]);
+
+      const servicemen =
+        servicemenRes.data.map((s: any) => ({
+          ...s,
+          role: "SERVICEMAN",
+          status: s.is_active === false
+            ? "REJECTED"
+            : s.is_approved
+            ? "APPROVED"
+            : "PENDING",
+        }));
+
+      const vendors =
+        vendorsRes.data.map((v: any) => ({
+          ...v,
+          role: "VENDOR",
+          status: v.is_active === false
+            ? "REJECTED"
+            : v.is_approved
+            ? "APPROVED"
+            : "PENDING",
+        }));
+
+      const combined = [
+        ...servicemen,
+        ...vendors,
+      ];
+      
+      combined.sort(
+        (a, b) =>
+          Number(b.id) - Number(a.id)
+      );
+      
+      setRequests(combined);
+
+    } catch (err) {
+
+      console.error(err);
+
+    } finally {
+
+      setLoading(false);
+    }
   };
 
-  // ================= REJECT =================
-  const rejectUser = (id: number): void => {
-    const updatedRequests = requests.map((user) =>
-      user.id === id
-        ? {
-            ...user,
-            status: "Rejected",
-          }
-        : user
-    ) as RequestType[];
+  const updateApprovalStatus = async (
+    request: ApprovalRequest,
+    action: "approve" | "reject"
+  ) => {
 
-    setRequests(updatedRequests);
+    try {
+
+      const token =
+        localStorage.getItem("accessToken");
+
+      if (request.role === "CUSTOMER")
+        return;
+
+      const endpoint =
+        request.role === "SERVICEMAN"
+          ? `${API_BASE}/admin/servicemen/${request.id}/control/`
+          : `${API_BASE}/admin/vendors/${request.id}/control/`;
+
+      await axios.patch(
+        endpoint,
+        {
+          is_approved:
+            action === "approve",
+
+          is_active:
+            action === "approve",
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      setRequests((prev) =>
+        prev.map((item) =>
+          item.id === request.id &&
+          item.role === request.role
+            ? {
+                ...item,
+                status:
+                  action === "approve"
+                    ? "APPROVED"
+                    : "REJECTED",
+              }
+            : item
+        )
+      );
+
+    } catch (err) {
+
+      console.error(err);
+    }
   };
 
-  // ================= FILTER =================
+  const getRoleColor = (
+    role: string
+  ) => {
+
+    switch (role) {
+
+      case "VENDOR":
+        return {
+          card:
+            "bg-gradient-to-br from-orange-50 to-orange-100 border-orange-400",
+
+          badge:
+            "bg-orange-600 text-white",
+        };
+
+      case "SERVICEMAN":
+        return {
+          card:
+            "bg-gradient-to-br from-green-50 to-green-100 border-green-400",
+
+          badge:
+            "bg-green-600 text-white",
+        };
+
+      case "CUSTOMER":
+        return {
+          card:
+            "bg-gradient-to-br from-blue-50 to-blue-100 border-blue-400",
+
+          badge:
+            "bg-blue-600 text-white",
+        };
+
+      default:
+        return {
+          card:
+            "bg-white border-slate-300",
+
+          badge:
+            "bg-slate-600 text-white",
+        };
+    }
+  };
+
+  const getStatusBadge = (
+    status: string
+  ) => {
+
+    switch (status) {
+
+      case "APPROVED":
+        return "bg-green-100 text-green-700";
+
+      case "REJECTED":
+        return "bg-red-100 text-red-700";
+
+      default:
+        return "bg-yellow-100 text-yellow-700";
+    }
+  };
+
   const filteredRequests = useMemo(() => {
-    return requests.filter((user) => {
+
+    return requests.filter((req) => {
+  
+      /*
+        =========================
+        SEARCH
+        =========================
+      */
+  
+      const searchText = `
+        ${req.name || ""}
+        ${req.email || ""}
+        ${req.phone || ""}
+        ${req.business_name || ""}
+        ${req.role || ""}
+        ${req.status || ""}
+      `
+        .toLowerCase();
+  
       const matchesSearch =
-        user.name
-          .toLowerCase()
-          .includes(
-            searchTerm.toLowerCase()
-          ) ||
-        user.email
-          .toLowerCase()
-          .includes(
-            searchTerm.toLowerCase()
-          );
-
-      if (pageType === "approval") {
-        const matchesRole =
-          roleFilter === "All" ||
-          user.role === roleFilter;
-
-        const matchesStatus =
-          statusFilter === "All" ||
-          user.status === statusFilter;
-
-        return (
-          matchesSearch &&
-          matchesRole &&
-          matchesStatus &&
-          (user.role === "Service Man" ||
-            user.role === "Vendor")
+        searchText.includes(
+          search.toLowerCase()
         );
-      }
-
-      if (pageType === "users") {
-        const matchesRole =
-          roleFilter === "All" ||
-          user.role === roleFilter;
-
-        return (
-          matchesSearch && matchesRole
-        );
-      }
-
-      if (pageType === "money") {
-        const matchesRole =
-          roleFilter === "All" ||
-          user.role === roleFilter;
-
-        const matchesStatus =
-          statusFilter === "All" ||
-          user.status === statusFilter;
-
-        return (
-          matchesSearch &&
-          matchesRole &&
-          matchesStatus &&
-          (user.role === "Service Man" ||
-            user.role === "Vendor")
-        );
-      }
-
-      return true;
+  
+      /*
+        =========================
+        ROLE FILTER
+        =========================
+      */
+  
+      const matchesRole =
+        roleFilter === "ALL"
+          ? true
+          : req.role === roleFilter;
+  
+      /*
+        =========================
+        STATUS FILTER
+        =========================
+      */
+  
+      const matchesStatus =
+        statusFilter === "ALL"
+          ? true
+          : req.status === statusFilter;
+  
+      return (
+        matchesSearch &&
+        matchesRole &&
+        matchesStatus
+      );
     });
+  
   }, [
     requests,
-    pageType,
+    search,
     roleFilter,
     statusFilter,
-    searchTerm,
   ]);
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      {/* ================= HEADER ================= */}
-      <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-5 mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">
-            Admin Management
-          </h1>
+    <div className="p-6 bg-[#f7f8fc] min-h-screen">
 
-          <p className="text-gray-500 mt-2">
-            Manage approvals, users and
-            money requests.
-          </p>
-        </div>
+      <div className="bg-white rounded-3xl border border-slate-200 p-6 mb-8 shadow-sm">
 
-        {/* Tabs */}
-        <div className="flex flex-wrap gap-3">
-          <button
-            onClick={() => {
-              setPageType("approval");
-              setRoleFilter("All");
-              setStatusFilter("Pending");
-            }}
-            className={`px-5 py-3 rounded-2xl font-semibold transition-all ${
-              pageType === "approval"
-                ? "bg-black text-white"
-                : "bg-white border border-gray-200"
-            }`}
-          >
-            Pending Approval
-          </button>
+        <h1 className="text-4xl font-bold text-slate-900">
+          Approval Management
+        </h1>
 
-          <button
-            onClick={() => {
-              setPageType("users");
-              setRoleFilter("All");
-              setStatusFilter("All");
-            }}
-            className={`px-5 py-3 rounded-2xl font-semibold transition-all ${
-              pageType === "users"
-                ? "bg-black text-white"
-                : "bg-white border border-gray-200"
-            }`}
-          >
-            Manage Users
-          </button>
+        <p className="text-slate-500 mt-2">
+          Manage vendors, servicemen and customer records
+        </p>
 
-          <button
-            onClick={() => {
-              setPageType("money");
-              setRoleFilter("All");
-              setStatusFilter("Pending");
-            }}
-            className={`px-5 py-3 rounded-2xl font-semibold transition-all ${
-              pageType === "money"
-                ? "bg-black text-white"
-                : "bg-white border border-gray-200"
-            }`}
-          >
-            Approval Money
-          </button>
-        </div>
-      </div>
+        <div className="flex flex-col lg:flex-row gap-4 mt-6">
 
-      {/* ================= FILTERS ================= */}
-      <div className="flex flex-col lg:flex-row gap-4 mb-8">
-        {/* Search */}
-        <div className="flex items-center bg-white border border-gray-200 rounded-2xl px-4 py-3 w-full shadow-sm">
-          <Search
-            size={18}
-            className="text-gray-700"
-          />
+          <div className="flex items-center gap-3 bg-slate-100 rounded-2xl px-4 py-3 flex-1">
 
-          <input
-            type="text"
-            placeholder="Search user..."
-            className="w-full ml-3 outline-none text-gray-700"
-            value={searchTerm}
-            onChange={(
-              e: React.ChangeEvent<HTMLInputElement>
-            ) =>
-              setSearchTerm(e.target.value)
-            }
-          />
-        </div>
+            <Search
+              size={18}
+              className="text-slate-500"
+            />
 
-        {/* Role Filter */}
-        <div className="flex items-center bg-white border border-gray-200 rounded-2xl px-4 py-3 shadow-sm">
-          <Filter
-            size={18}
-            className="text-gray-700 mr-2"
-          />
+            <input
+              value={search}
+              onChange={(e) =>
+                setSearch(e.target.value)
+              }
+              className="bg-transparent outline-none w-full text-black"
+              placeholder="Search requests..."
+            />
+          </div>
 
           <select
             value={roleFilter}
-            onChange={(
-              e: React.ChangeEvent<HTMLSelectElement>
-            ) =>
+            onChange={(e) =>
               setRoleFilter(e.target.value)
             }
-            className="outline-none bg-transparent text-gray-700 text-sm font-medium"
+            className="px-4 py-3 rounded-2xl border border-slate-200 bg-white text-black"
           >
-            <option value="All">
+
+            <option value="ALL">
               All Roles
             </option>
 
-            {(pageType === "approval" ||
-              pageType === "money") && (
-              <>
-                <option value="Service Man">
-                  Service Man
-                </option>
+            <option value="CUSTOMER">
+              Customer
+            </option>
 
-                <option value="Vendor">
-                  Vendor
-                </option>
-              </>
-            )}
+            <option value="SERVICEMAN">
+              Serviceman
+            </option>
 
-            {pageType === "users" && (
-              <>
-                <option value="Customer">
-                  Customer
-                </option>
+            <option value="VENDOR">
+              Vendor
+            </option>
+          </select>
 
-                <option value="Service Man">
-                  Service Man
-                </option>
+          <select
+            value={statusFilter}
+            onChange={(e) =>
+              setStatusFilter(e.target.value)
+            }
+            className="px-4 py-3 rounded-2xl border border-slate-200 bg-white text-black"
+          >
 
-                <option value="Vendor">
-                  Vendor
-                </option>
-              </>
-            )}
+            <option value="ALL">
+              All Status
+            </option>
+
+            <option value="APPROVED">
+              Approved
+            </option>
+
+            <option value="PENDING">
+              Pending
+            </option>
+
+            <option value="REJECTED">
+              Rejected
+            </option>
           </select>
         </div>
-
-        {/* Status Filter */}
-        {(pageType === "approval" ||
-          pageType === "money") && (
-          <div className="flex items-center bg-white border border-gray-200 rounded-2xl px-4 py-3 shadow-sm">
-            <Clock3
-              size={18}
-              className="text-gray-700 mr-2"
-            />
-
-            <select
-              value={statusFilter}
-              onChange={(
-                e: React.ChangeEvent<HTMLSelectElement>
-              ) =>
-                setStatusFilter(
-                  e.target.value
-                )
-              }
-              className="outline-none bg-transparent text-gray-700 text-sm font-medium"
-            >
-              <option value="All">
-                All Status
-              </option>
-
-              <option value="Pending">
-                Pending
-              </option>
-
-              <option value="Approved">
-                Approved
-              </option>
-
-              <option value="Rejected">
-                Rejected
-              </option>
-            </select>
-          </div>
-        )}
       </div>
 
-      {/* ================= STATS ================= */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-5 mb-8">
-        {/* Total */}
-        <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
-          <div className="flex justify-between items-center">
-            <div>
-              <p className="text-gray-700">
-                Total Users
-              </p>
+      {loading ? (
 
-              <h2 className="text-3xl text-gray-700 font-bold mt-2">
-                {requests.length}
-              </h2>
-            </div>
-
-            <div className="bg-blue-100 p-4 rounded-2xl">
-              <Users className="text-blue-600" />
-            </div>
-          </div>
+        <div className="text-center py-20 text-slate-500">
+          Loading...
         </div>
 
-        {/* Approved */}
-        <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
-          <div className="flex justify-between items-center">
-            <div>
-              <p className="text-gray-700">
-                Approved
-              </p>
+      ) : (
 
-              <h2 className="text-3xl text-gray-700 font-bold mt-2">
-                {
-                  requests.filter(
-                    (u) =>
-                      u.status ===
-                      "Approved"
-                  ).length
-                }
-              </h2>
-            </div>
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
 
-            <div className="bg-green-100 p-4 rounded-2xl">
-              <CheckCircle className="text-green-600" />
-            </div>
-          </div>
-        </div>
-
-        {/* Pending */}
-        <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
-          <div className="flex justify-between items-center">
-            <div>
-              <p className="text-gray-700">
-                Pending
-              </p>
-
-              <h2 className="text-3xl text-gray-700 font-bold mt-2">
-                {
-                  requests.filter(
-                    (u) =>
-                      u.status ===
-                      "Pending"
-                  ).length
-                }
-              </h2>
-            </div>
-
-            <div className="bg-yellow-100 p-4 rounded-2xl">
-              <Clock3 className="text-yellow-600" />
-            </div>
-          </div>
-        </div>
-
-        {/* Rejected */}
-        <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
-          <div className="flex justify-between items-center">
-            <div>
-              <p className="text-gray-700">
-                Rejected
-              </p>
-
-              <h2 className="text-3xl text-gray-700 font-bold mt-2">
-                {
-                  requests.filter(
-                    (u) =>
-                      u.status ===
-                      "Rejected"
-                  ).length
-                }
-              </h2>
-            </div>
-
-            <div className="bg-red-100 p-4 rounded-2xl">
-              <XCircle className="text-red-600" />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ================= CARDS ================= */}
-      <div className="grid gap-6">
-        {filteredRequests.map((user) => (
-          <div
-            key={user.id}
-            className="bg-white rounded-[2rem] border border-gray-100 shadow-sm p-6"
-          >
-            <div className="flex flex-col xl:flex-row xl:justify-between gap-6">
-              {/* Left */}
-              <div className="flex-1">
-                <div className="flex flex-wrap gap-3 mb-5">
-                  <span className="bg-gray-100 text-gray-700 px-3 py-1 rounded-xl text-xs font-bold">
-                    ID {user.id}
-                  </span>
-
-                  <span
-                    className={`px-3 py-1 rounded-xl text-xs font-bold ${
-                      user.role === "Vendor"
-                        ? "bg-orange-100 text-orange-600"
-                        : user.role ===
-                          "Customer"
-                        ? "bg-blue-100 text-blue-600"
-                        : "bg-purple-100 text-purple-600"
-                    }`}
-                  >
-                    {user.role}
-                  </span>
-
-                  <span
-                    className={`px-3 py-1 rounded-xl text-xs font-bold ${
-                      user.status ===
-                      "Approved"
-                        ? "bg-green-100 text-green-600"
-                        : user.status ===
-                          "Rejected"
-                        ? "bg-red-100 text-red-600"
-                        : "bg-yellow-100 text-yellow-700"
-                    }`}
-                  >
-                    {user.status}
-                  </span>
-                </div>
-
-                <h2 className="text-2xl font-bold text-gray-900">
-                  {user.name}
-                </h2>
-
-                <p className="text-gray-500 mt-1">
-                  {user.email}
-                </p>
-
-                <div className="grid md:grid-cols-2 gap-5 mt-6">
-                  <div>
-                    <p className="text-sm text-gray-400">
-                      Phone
-                    </p>
-
-                    <p className="font-semibold text-gray-700">
-                      {user.phone}
-                    </p>
-                  </div>
-
-                  <div>
-                    <p className="text-sm text-gray-400">
-                      City
-                    </p>
-
-                    <p className="font-semibold text-gray-700">
-                      {user.city}
-                    </p>
-                  </div>
-
-                  <div>
-                    <p className="text-sm text-gray-400">
-                      Service
-                    </p>
-
-                    <p className="font-semibold text-gray-700">
-                      {user.service}
-                    </p>
-                  </div>
-
-                  <div>
-                    <p className="text-sm text-gray-400">
-                      Experience
-                    </p>
-
-                    <p className="font-semibold text-gray-700">
-                      {user.experience}
-                    </p>
-                  </div>
-
-                  {pageType === "money" && (
-                    <div>
-                      <p className="text-sm text-gray-400">
-                        Request Amount
-                      </p>
-
-                      <p className="font-bold text-green-600">
-                        {user.amount}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Actions */}
-              {(pageType === "approval" ||
-                pageType === "money") && (
-                <div className="flex flex-col sm:flex-row xl:flex-col gap-4 min-w-[220px]">
-                  {/* Approve */}
-                  <button
-                    onClick={() =>
-                      approveUser(user.id)
-                    }
-                    disabled={
-                      user.status ===
-                      "Approved"
-                    }
-                    className={`py-3 px-6 rounded-2xl font-semibold flex items-center justify-center gap-2 transition-all ${
-                      user.status ===
-                      "Approved"
-                        ? "bg-green-100 text-green-600 cursor-not-allowed"
-                        : "bg-green-600 hover:bg-green-700 text-white"
-                    }`}
-                  >
-                    <BadgeCheck size={18} />
-
-                    {user.status ===
-                    "Approved"
-                      ? "Approved"
-                      : "Approve"}
-                  </button>
-
-                  {/* Reject */}
-                  <button
-                    onClick={() =>
-                      rejectUser(user.id)
-                    }
-                    disabled={
-                      user.status ===
-                      "Rejected"
-                    }
-                    className={`py-3 px-6 rounded-2xl font-semibold flex items-center justify-center gap-2 transition-all ${
-                      user.status ===
-                      "Rejected"
-                        ? "bg-red-100 text-red-600 cursor-not-allowed"
-                        : "bg-red-600 hover:bg-red-700 text-white"
-                    }`}
-                  >
-                    <XCircle size={18} />
-
-                    {user.status ===
-                    "Rejected"
-                      ? "Rejected"
-                      : "Reject"}
-                  </button>
+          {filteredRequests.length === 0 &&
+                !loading && (
+              
+                <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center shadow-sm">
+              
+                  <h3 className="text-2xl font-bold text-slate-800">
+                    No Requests Found
+                  </h3>
+              
+                  <p className="text-slate-500 mt-3">
+                    Try changing filters
+                  </p>
                 </div>
               )}
+
+          {filteredRequests.map((req) => (
+
+            <div
+              key={`${req.role}-${req.id}`}
+              className={`${getRoleColor(req.role).card}
+              border-2 rounded-3xl p-6 shadow-sm hover:shadow-lg transition-all`}
+            >
+
+              <div className="flex items-center justify-between">
+
+                <div className="flex items-center gap-3">
+
+                  <span
+                    className={`px-3 py-1 rounded-full text-xs font-semibold ${getRoleColor(req.role).badge}`}
+                  >
+                    {req.role}
+                  </span>
+
+                  <span
+                    className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusBadge(req.status)}`}
+                  >
+                    {req.status}
+                  </span>
+                </div>
+
+                {req.role === "CUSTOMER" ? (
+                  <User className="text-blue-700" />
+                ) : req.role === "SERVICEMAN" ? (
+                  <ShieldCheck className="text-green-700" />
+                ) : (
+                  <Store className="text-orange-700" />
+                )}
+              </div>
+
+              <div className="mt-6">
+
+                <h2 className="text-2xl font-bold text-slate-900">
+                  {req.business_name || req.name}
+                </h2>
+
+                <p className="text-slate-600 mt-2">
+                  {req.email}
+                </p>
+
+                <p className="text-slate-500 mt-1">
+                  {req.phone}
+                </p>
+
+                {req.skills && (
+
+                  <div className="mt-4 flex flex-wrap gap-2">
+
+                    {(
+                      Array.isArray(req.skills)
+                        ? req.skills
+
+                        : typeof req.skills === "string"
+
+                        ? req.skills
+                            .replace(/[\\[\\]']/g, "")
+                            .split(",")
+                            .map((s: string) =>
+                              s.trim()
+                            )
+
+                        : []
+                    ).map(
+                      (
+                        skill: string,
+                        index: number
+                      ) => (
+
+                        <span
+                          key={index}
+                          className="px-3 py-1 rounded-full bg-white text-slate-700 text-xs font-medium"
+                        >
+                          {skill}
+                        </span>
+                      )
+                    )}
+                  </div>
+                  )}
+              </div>
+
+              <div className="flex gap-3 mt-6">
+
+                {req.role !== "CUSTOMER" ? (
+                  <>
+                    <button
+                      onClick={() =>
+                        updateApprovalStatus(
+                          req,
+                          "approve"
+                        )
+                      }
+                      className="flex-1 bg-green-600 hover:bg-green-700 text-white py-3 rounded-2xl font-semibold transition"
+                    >
+                      Approve
+                    </button>
+
+                    <button
+                      onClick={() =>
+                        updateApprovalStatus(
+                          req,
+                          "reject"
+                        )
+                      }
+                      className="flex-1 bg-red-600 hover:bg-red-700 text-white py-3 rounded-2xl font-semibold transition"
+                    >
+                      Reject
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-2xl font-semibold transition"
+                  >
+                    View Bookings
+                  </button>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
-
-        {filteredRequests.length === 0 && (
-          <div className="bg-white rounded-3xl p-20 text-center border border-dashed border-gray-200">
-            <Wallet
-              size={50}
-              className="mx-auto text-gray-300 mb-4"
-            />
-
-            <p className="text-gray-400 text-lg">
-              No data found.
-            </p>
-          </div>
-        )}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
-};
-
-export default Adminapproval;
+}

@@ -1,85 +1,114 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import api from "../../../lib/api";
+import { usePathname } from "next/navigation";
+import {
+  LayoutDashboard,
+  CheckCircle2,
+  Tag,
+  Package,
+  Users,
+  CalendarDays,
+  Wallet,
+  Settings,
+} from "lucide-react";
 
-export default function Sidebar() {
+// ── Admin nav structure ───────────────────────────────────────────────────────
+const menuGroups = [
+  {
+    group: "OVERVIEW",
+    items: [
+      { name: "Dashboard",  href: "/admin/dashboard",  icon: LayoutDashboard },
+    ],
+  },
+  {
+    group: "MANAGEMENT",
+    items: [
+      { name: "Users",      href: "/admin/users",      icon: Users          },
+      { name: "Bookings",   href: "/admin/bookings",   icon: CalendarDays   },
+      { name: "Approval",   href: "/admin/approval",   icon: CheckCircle2   },
+    ],
+  },
+  {
+    group: "CATALOGUE",
+    items: [
+      { name: "Categories", href: "/admin/categories", icon: Tag            },
+      { name: "Products",   href: "/admin/products",   icon: Package        },
+    ],
+  },
+  {
+    group: "FINANCE",
+    items: [
+      { name: "Wallet",     href: "/admin/wallet",     icon: Wallet         },
+    ],
+  },
+  {
+    group: "SYSTEM",
+    items: [
+      { name: "Settings",   href: "/admin/settings",   icon: Settings       },
+    ],
+  },
+];
+
+export default function AdminSidebar() {
   const pathname = usePathname();
-  const router = useRouter();
 
-  const handleLogout = async () => {
-    try {
-      await api.post("/auth/logout");
-    } catch {}
-    finally {
-      localStorage.clear();
-      router.push("/");
-    }
-  };
-
-  const navItems = [
-    { href: "/admin/dashboard", label: "Dashboards", section: "DASHBOARDS" },
-    { href: "/admin/users-page", label: "Users", section: "DASHBOARDS" },
-
-    { href: "/admin/service-man", label: "Service Man", section: "VENDORS" },
-    { href: "/admin/vendors", label: "Vendors", section: "VENDORS" },
-    { href: "/admin/products", label: "Products", section: "VENDORS" },
-    { href: "/admin/categories", label: "Categories", section: "VENDORS" },
-  ];
-
-  const isActive = (href: string) => pathname === href;
+  const isActive = (href: string) =>
+    pathname === href || pathname.startsWith(href + "/");
 
   return (
-    <aside className="w-64 min-h-screen bg-[#0B1C2D] text-[#A9B7D0] flex flex-col">
+    <aside className="w-60 h-screen bg-[#0B1C2D] text-[#A9B7D0] flex flex-col flex-shrink-0">
 
-      {/* Logo */}
-      <div className="px-6 py-6 border-b border-white/10">
-        <h1 className="text-2xl font-bold text-white tracking-wide">
+      {/* ── Logo ── */}
+      <div className="px-6 py-5 border-b border-white/10 flex items-center gap-2">
+        <h1 className="text-xl font-bold text-white tracking-wide">
           Home<span className="text-blue-400">Fixer</span>
         </h1>
       </div>
 
-      {/* Menu */}
-      <nav className="flex-1 px-4 py-6 space-y-6 text-sm">
-
-        {["DASHBOARDS", "VENDORS"].map((section) => (
-          <div key={section}>
-            <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-[#6C7A96]">
-              {section}
+      {/* ── Navigation ── */}
+      <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-5 text-sm">
+        {menuGroups.map((group) => (
+          <div key={group.group}>
+            <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-widest text-[#4A5568]">
+              {group.group}
             </p>
 
-            <div className="space-y-1">
-              {navItems
-                .filter((item) => item.section === section)
-                .map(({ href, label }) => (
+            <div className="space-y-0.5">
+              {group.items.map(({ name, href, icon: Icon }) => {
+                const active = isActive(href);
+                return (
                   <Link
-                    key={href}
+                    key={name}
                     href={href}
-                    className={`flex items-center justify-between px-4 py-2 rounded-md transition
-                      ${
-                        isActive(href)
-                          ? "bg-blue-600/20 text-white"
-                          : "hover:bg-white/5 hover:text-white"
-                      }`}
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all font-medium ${
+                      active
+                        ? "bg-blue-600/20 text-white"
+                        : "text-[#A9B7D0] hover:bg-white/5 hover:text-white"
+                    }`}
                   >
-                    <span>{label}</span>
-                    <span className="text-xs opacity-60">▾</span>
+                    <span className={active ? "text-blue-400" : "text-[#6C7A96]"}>
+                      <Icon size={16} />
+                    </span>
+
+                    {name}
+
+                    {active && (
+                      <span className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-400" />
+                    )}
                   </Link>
-                ))}
+                );
+              })}
             </div>
           </div>
         ))}
       </nav>
 
-      {/* Logout */}
-      <div className="px-6 py-4 border-t border-white/10">
-        <button
-          onClick={handleLogout}
-          className="w-full text-left px-4 py-2 rounded-md text-red-400 hover:bg-red-500/10 hover:text-red-300 transition"
-        >
-          Logout
-        </button>
+      {/* ── Bottom role tag ── */}
+      <div className="px-5 py-3 border-t border-white/10">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-[#4A5568]">
+          Admin Portal
+        </p>
       </div>
     </aside>
   );

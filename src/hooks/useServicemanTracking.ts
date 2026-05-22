@@ -104,7 +104,7 @@ export function useServicemanTracking(bookingId: string): TrackingState {
     if (!bookingId) return;
     (async () => {
       try {
-        const res = await api.get(`/booking/${bookingId}/track/`);
+        const res = await api.get(`/bookings/${bookingId}/track/`);
         const d = res.data;
         // Normalise — backend may return coords as strings
         setBooking({
@@ -132,7 +132,7 @@ export function useServicemanTracking(bookingId: string): TrackingState {
     async (pos: LatLng) => {
       if (!isOnline) return;
       try {
-        await api.post("/serviceman/location/update/", {
+        await api.patch("/serviceman/location/update/", {
           lat: pos.lat,
           lon: pos.lng,
         });
@@ -265,7 +265,7 @@ export function useServicemanTracking(bookingId: string): TrackingState {
   const completeService = useCallback(async () => {
     setCompleting(true);
     try {
-      await api.patch(`/booking/${bookingId}/complete/`);
+      await api.post(`/serviceman/booking/${bookingId}/complete/`);
       setStage("COMPLETE");
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { error?: string } } };

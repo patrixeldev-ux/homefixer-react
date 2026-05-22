@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import api from "../../../lib/api";
+import { parseBookingList } from "../../../lib/bookings";
 import {
   FiCalendar,
   FiClipboard,
@@ -21,20 +22,13 @@ export default function CustomerDashboard() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [userRes, activeRes, completedRes, cancelledRes] = await Promise.all([
+        const [userRes, historyRes] = await Promise.all([
           api.get("/profile/"),
-          api.get("/bookings/history/", { params: { section: "active" } }),
-          api.get("/bookings/history/", { params: { section: "completed" } }),
-          api.get("/bookings/history/", { params: { section: "cancelled" } }),
+          api.get("/bookings/history/"),
         ]);
 
         setCustomer(userRes.data.user);
-
-        const active    = Array.isArray(activeRes.data)    ? activeRes.data    : activeRes.data?.results    ?? [];
-        const completed = Array.isArray(completedRes.data) ? completedRes.data : completedRes.data?.results ?? [];
-        const cancelled = Array.isArray(cancelledRes.data) ? cancelledRes.data : cancelledRes.data?.results ?? [];
-
-        setBookings([...active, ...completed, ...cancelled]);
+        setBookings(parseBookingList(historyRes.data));
       } catch (err) {
         console.log("Dashboard error:", err);
       } finally {

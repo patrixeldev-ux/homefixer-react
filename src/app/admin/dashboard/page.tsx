@@ -1,236 +1,394 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import axios from "axios";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
-import ApexCharts from "apexcharts";
-import DataTable from "react-data-table-component";
+
 import {
-  FiSearch,
-  FiBell,
-  FiGrid,
-  FiSettings,
-  FiMoon,
-  FiSun,
-  FiMenu,
-  FiEdit,
-  FiTrash2,
-} from "react-icons/fi";
+  Bell,
+  Users,
+  Wrench,
+  Store,
+  CalendarDays,
+  Wallet,
+  Layers3,
+} from "lucide-react";
 
-/* ---------------- TYPES ---------------- */
-interface Product {
-  id: number;
-  name: string;
-  price: number;
-  stock: number;
-  sold: number;
+const API_BASE =
+  process.env.NEXT_PUBLIC_API_URL ||
+  "https://home-fixer-production.up.railway.app/api";
+
+interface NotificationItem {
+  type:
+    | "vendor"
+    | "serviceman"
+    | "booking"
+    | "wallet";
+
+  title: string;
+  message: string;
 }
 
-interface Request {
-  id: number;
-  customer: string;
-  product: string;
-  quantity: number;
-  status: "pending" | "approved";
-}
+export default function AdminDashboardPage() {
 
-interface Vendor {
-  id: number;
-  name: string;
-  email: string;
-  products: Product[];
-  requests: Request[];
-}
-
-/* ---------------- STATIC DATA ---------------- */
-const dummyVendor: Vendor = {
-  id: 1,
-  name: "Dhruv Hardware",
-  email: "dhruv@gmail.com",
-  products: [
-    { id: 1, name: "Hammer", price: 50, stock: 5, sold: 40 },
-    { id: 2, name: "Drill", price: 150, stock: 8, sold: 25 },
-    { id: 3, name: "Screwdriver", price: 15, stock: 20, sold: 60 },
-  ],
-  requests: [
-    { id: 1, customer: "Rahul", product: "Hammer", quantity: 2, status: "pending" },
-    { id: 2, customer: "Meena", product: "Drill", quantity: 1, status: "pending" },
-    { id: 3, customer: "Kiran", product: "Screwdriver", quantity: 5, status: "approved" },
-  ],
-};
-
-export default function VendorDashboardPage() {
   const router = useRouter();
-  const [vendor, setVendor] = useState<Vendor | null>(null);
-  const [isDark, setIsDark] = useState(false);
-  const chartRef = useRef<ApexCharts | null>(null);
 
-  /* ---------- Load Vendor Data ---------- */
-  useEffect(() => {
-    setVendor(dummyVendor);
-  }, []);
+  const [notifications, setNotifications] =
+    useState<NotificationItem[]>([]);
 
-  /* ---------- THEME ---------- */
-  useEffect(() => {
-    const savedTheme = localStorage.getItem("theme");
-    if (savedTheme === "dark") {
-      setIsDark(true);
-      document.documentElement.classList.add("dark");
-    }
-  }, []);
+  const getHeaders = () => {
 
-  const toggleDarkMode = () => {
-    setIsDark((prev) => !prev);
-    if (!isDark) {
-      document.documentElement.classList.add("dark");
-      localStorage.setItem("theme", "dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-      localStorage.setItem("theme", "light");
+    const token =
+      localStorage.getItem("accessToken");
+
+    return token
+      ? {
+          Authorization: `Bearer ${token}`,
+        }
+      : {};
+  };
+
+  const fetchNotifications = async () => {
+
+    try {
+
+      const headers = getHeaders();
+
+      const [
+        vendorsRes,
+        servicemenRes,
+        bookingsRes,
+        withdrawalsRes,
+      ] = await Promise.all([
+
+        axios.get(
+          `${API_BASE}/admin/vendors/pending/`,
+          { headers }
+        ),
+
+        axios.get(
+          `${API_BASE}/admin/servicemen/pending/`,
+          { headers }
+        ),
+
+        axios.get(
+          `${API_BASE}/admin/bookings/all/`,
+          { headers }
+        ),
+
+        axios.get(
+          `${API_BASE}/admin/withdrawals/`,
+          { headers }
+        ),
+      ]);
+
+      const items: NotificationItem[] = [];
+
+      vendorsRes.data.forEach((v: any) => {
+
+        items.push({
+          type: "vendor",
+
+          title:
+            "Vendor Approval Request",
+
+          message:
+            `${v.business_name || v.name} awaiting approval`,
+        });
+      });
+
+      servicemenRes.data.forEach((s: any) => {
+
+        items.push({
+          type: "serviceman",
+
+          title:
+            "Serviceman Verification",
+
+          message:
+            `${s.name} submitted verification`,
+        });
+      });
+
+      bookingsRes.data
+        .slice(0, 5)
+        .forEach((b: any) => {
+
+          items.push({
+            type: "booking",
+
+            title: "New Booking",
+
+            message:
+              `${b.customer_name || "Customer"} booked ${
+                b.service_name || "service"
+              }`,
+          });
+        });
+
+      withdrawalsRes.data.forEach((w: any) => {
+
+        items.push({
+          type: "wallet",
+
+          title:
+            "Withdrawal Request",
+
+          message:
+            `${w.user_name || "User"} requested withdrawal`,
+        });
+      });
+
+      setNotifications(items);
+
+    } catch (err) {
+
+      console.error(
+        "NOTIFICATION ERROR:",
+        err
+      );
     }
   };
 
-  /* ---------- LOGOUT ---------- */
-  const handleLogout = () => {
-    localStorage.clear();
-    router.push("/");
-  };
-
-  /* ---------- MONTHLY TOTAL SALES CHART ---------- */
   useEffect(() => {
-    if (!vendor) return;
-
-    const options = {
-      chart: { type: "line", height: 200, toolbar: { show: false } },
-      series: [{ name: "Total Sold", data: vendor.products.map((p) => p.sold) }],
-      xaxis: { categories: vendor.products.map((p) => p.name) },
-      colors: ["#3b82f6"],
-      dataLabels: { enabled: false },
-      stroke: { curve: "smooth" },
-      grid: { strokeDashArray: 4 },
-    };
-
-    const el = document.querySelector("#totalSalesChart");
-    if (!el) return;
-
-    chartRef.current = new ApexCharts(el, options);
-    chartRef.current.render();
-
-    return () => chartRef.current?.destroy();
-  }, [vendor]);
-
-  /* ---------- LOW STOCK TABLE ---------- */
-  const lowStock = vendor?.products.filter((p) => p.stock <= 10) || [];
-  const lowStockColumns = [
-    { name: "Product", selector: (row: Product) => row.name },
-    { name: "Price", selector: (row: Product) => `$${row.price}` },
-    { name: "Stock", selector: (row: Product) => row.stock },
-  ];
-
-  /* ---------- NEW REQUESTS TABLE ---------- */
-  const pendingRequests = vendor?.requests.filter((r) => r.status === "pending") || [];
-  const requestColumns = [
-    { name: "Customer", selector: (row: Request) => row.customer },
-    { name: "Product", selector: (row: Request) => row.product },
-    { name: "Qty", selector: (row: Request) => row.quantity },
-    {
-      name: "Actions",
-      cell: (row: Request) => (
-        <div className="flex gap-2">
-          <button className="px-2 py-1 bg-green-500 text-white rounded" onClick={() => alert(`Approve ${row.id}`)}>
-            Approve
-          </button>
-          <button className="px-2 py-1 bg-red-500 text-white rounded" onClick={() => alert(`Reject ${row.id}`)}>
-            Reject
-          </button>
-        </div>
-      ),
-    },
-  ];
-
-  if (!vendor) return <div>Loading...</div>;
+    fetchNotifications();
+  }, []);
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA] dark:bg-gray-900 p-6">
+    <div className="p-6 bg-[#f7f8fc] min-h-screen">
 
-      {/* ================= HEADER ================= */}
-      <header className="flex items-center justify-between w-full bg-white dark:bg-gray-800 h-16 px-6 rounded-xl shadow border-b mb-6">
-        <div className="flex items-center gap-4">
-          <button className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700">
-            <FiMenu className="text-xl text-gray-700 dark:text-gray-200" />
-          </button>
-          <span className="font-bold text-lg text-gray-800 dark:text-white">
-            {vendor.name}
-          </span>
-        </div>
+      {/* HERO */}
 
-        <div className="hidden lg:flex relative w-80">
-          <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            placeholder="Search for products"
-            className="w-full pl-10 pr-4 py-2 border rounded-md focus:outline-none"
-          />
-        </div>
+      <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-700 rounded-3xl p-8 text-white shadow-sm mb-8">
 
-        <div className="flex items-center gap-3">
-          <FiGrid className="text-gray-600 dark:text-gray-300" />
-          <FiSettings className="text-gray-600 dark:text-gray-300" />
-          <FiBell className="text-gray-600 dark:text-gray-300" />
+        <h2 className="text-5xl font-bold">
+          Welcome Back, Admin
+        </h2>
 
-          <button onClick={toggleDarkMode}>
-            {isDark ? <FiSun className="text-yellow-400" /> : <FiMoon className="text-gray-600 dark:text-gray-300" />}
-          </button>
-
-          <img src="https://i.pravatar.cc/40?img=12" className="w-9 h-9 rounded-full" alt="profile" />
-
-          <button
-            onClick={handleLogout}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm"
-          >
-            Logout
-          </button>
-        </div>
-      </header>
-
-      {/* ================= TOTAL SALES CARD ================= */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-5 mb-6">
-        <h6 className="font-semibold text-gray-800 dark:text-white mb-3">Monthly Total Sales</h6>
-        <div id="totalSalesChart" />
+        <p className="text-slate-300 mt-3 text-lg">
+          Manage users, approvals, bookings and payments
+        </p>
       </div>
 
-      {/* ================= GRID: LOW STOCK + NEW REQUESTS ================= */}
-      <div className="grid grid-cols-12 gap-4">
-        {/* LOW STOCK */}
-        <div className="col-span-12 xl:col-span-6 bg-white dark:bg-gray-800 rounded-xl shadow p-4">
-          <h6 className="font-semibold mb-4 text-gray-800 dark:text-white">Low Stock Products</h6>
-          <DataTable
-            columns={lowStockColumns}
-            data={lowStock}
-            pagination
-            highlightOnHover
-            responsive
-            customStyles={{
-              table: { style: { border: "1px solid #e5e7eb", borderRadius: "0.5rem" } },
-              rows: { style: { borderBottom: "1px solid #e5e7eb" } },
-            }}
-            noDataComponent="No low stock products"
-          />
+      {/* ================= STATS ================= */}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
+
+        {/* TOTAL USERS */}
+        <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
+
+          <div className="flex items-center justify-between text-black">
+
+            <div>
+              <p className="text-slate-500 text-sm">
+                Total Users
+              </p>
+
+              <h2 className="text-5xl font-bold mt-4">
+                11
+              </h2>
+            </div>
+
+            <div className="w-16 h-16 rounded-2xl bg-blue-100 text-blue-700 flex items-center justify-center">
+              <Users size={28} />
+            </div>
+          </div>
         </div>
 
-        {/* NEW REQUESTS */}
-        <div className="col-span-12 xl:col-span-6 bg-white dark:bg-gray-800 rounded-xl shadow p-4">
-          <h6 className="font-semibold mb-4 text-gray-800 dark:text-white">New Requests</h6>
-          <DataTable
-            columns={requestColumns}
-            data={pendingRequests}
-            pagination
-            highlightOnHover
-            responsive
-            customStyles={{
-              table: { style: { border: "1px solid #e5e7eb", borderRadius: "0.5rem" } },
-              rows: { style: { borderBottom: "1px solid #e5e7eb" } },
-            }}
-            noDataComponent="No new requests"
-          />
+        {/* CUSTOMERS */}
+        <div className="bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-400 rounded-3xl p-6 shadow-sm hover:shadow-lg transition-all">
+
+          <div className="flex items-center justify-between">
+
+            <div>
+              <p className="text-blue-700 text-sm font-medium">
+                Customers
+              </p>
+
+              <h2 className="text-5xl font-bold mt-4 text-slate-900">
+                3
+              </h2>
+            </div>
+
+            <div className="w-16 h-16 rounded-2xl bg-blue-200 text-blue-700 flex items-center justify-center">
+              <Users size={28} />
+            </div>
+          </div>
+        </div>
+
+        {/* VENDORS */}
+        <div className="bg-gradient-to-br from-orange-50 to-orange-100 border-2 border-orange-400 rounded-3xl p-6 shadow-sm hover:shadow-lg transition-all">
+
+          <div className="flex items-center justify-between">
+
+            <div>
+              <p className="text-orange-700 text-sm font-medium">
+                Vendors
+              </p>
+
+              <h2 className="text-5xl font-bold mt-4 text-slate-900">
+                3
+              </h2>
+            </div>
+
+            <div className="w-16 h-16 rounded-2xl bg-orange-200 text-orange-700 flex items-center justify-center">
+              <Store size={28} />
+            </div>
+          </div>
+        </div>
+
+        {/* SERVICEMEN */}
+        <div className="bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-400 rounded-3xl p-6 shadow-sm hover:shadow-lg transition-all">
+
+          <div className="flex items-center justify-between">
+
+            <div>
+              <p className="text-green-700 text-sm font-medium">
+                Servicemen
+              </p>
+
+              <h2 className="text-5xl font-bold mt-4 text-slate-900">
+                4
+              </h2>
+            </div>
+
+            <div className="w-16 h-16 rounded-2xl bg-green-200 text-green-700 flex items-center justify-center">
+              <Wrench size={28} />
+            </div>
+          </div>
+        </div>
+
+        {/* BOOKINGS */}
+        <div className="bg-gradient-to-br from-violet-50 to-violet-100 border-2 border-violet-400 rounded-3xl p-6 shadow-sm hover:shadow-lg transition-all">
+
+          <div className="flex items-center justify-between">
+
+            <div>
+              <p className="text-violet-700 text-sm font-medium">
+                Bookings
+              </p>
+
+              <h2 className="text-5xl font-bold mt-4 text-slate-900">
+                14
+              </h2>
+            </div>
+
+            <div className="w-16 h-16 rounded-2xl bg-violet-200 text-violet-700 flex items-center justify-center">
+              <CalendarDays size={28} />
+            </div>
+          </div>
+        </div>
+
+        {/* WITHDRAWALS */}
+        <div className="bg-gradient-to-br from-red-50 to-red-100 border-2 border-red-400 rounded-3xl p-6 shadow-sm hover:shadow-lg transition-all">
+
+          <div className="flex items-center justify-between">
+
+            <div>
+              <p className="text-red-700 text-sm font-medium">
+                Withdrawals
+              </p>
+
+              <h2 className="text-5xl font-bold mt-4 text-slate-900">
+                0
+              </h2>
+            </div>
+
+            <div className="w-16 h-16 rounded-2xl bg-red-200 text-red-700 flex items-center justify-center">
+              <Wallet size={28} />
+            </div>
+          </div>
+        </div>
+      </div>
+
+
+      {/* QUICK ACTIONS */}
+
+      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 mb-8">
+
+        <h2 className="text-3xl font-bold text-slate-900 mb-6">
+          Quick Actions
+        </h2>
+
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-5">
+
+          <button
+            onClick={() => router.push("/admin/users")}
+            className="bg-blue-50 hover:bg-blue-100 border border-blue-100 rounded-3xl p-6 transition-all flex flex-col items-center justify-center gap-4"
+          >
+            <div className="w-14 h-14 rounded-2xl bg-blue-100 text-blue-700 flex items-center justify-center">
+              <Users />
+            </div>
+
+            <span className="font-semibold text-slate-800">
+              Users
+            </span>
+          </button>
+
+          <button
+            onClick={() => router.push("/admin/bookings")}
+            className="bg-violet-50 hover:bg-violet-100 border border-violet-100 rounded-3xl p-6 transition-all flex flex-col items-center justify-center gap-4"
+          >
+            <div className="w-14 h-14 rounded-2xl bg-violet-100 text-violet-700 flex items-center justify-center">
+              <CalendarDays />
+            </div>
+
+            <span className="font-semibold text-slate-800">
+              Bookings
+            </span>
+          </button>
+
+          <button
+            onClick={() => router.push("/admin/approval")}
+            className="bg-green-50 hover:bg-green-100 border border-green-100 rounded-3xl p-6 transition-all flex flex-col items-center justify-center gap-4"
+          >
+            <div className="w-14 h-14 rounded-2xl bg-green-100 text-green-700 flex items-center justify-center">
+              <Wrench />
+            </div>
+
+            <span className="font-semibold text-slate-800">
+              Approval
+            </span>
+          </button>
+
+          <button
+            onClick={() => router.push("/admin/vendors")}
+            className="bg-orange-50 hover:bg-orange-100 border border-orange-100 rounded-3xl p-6 transition-all flex flex-col items-center justify-center gap-4"
+          >
+            <div className="w-14 h-14 rounded-2xl bg-orange-100 text-orange-700 flex items-center justify-center">
+              <Store />
+            </div>
+
+            <span className="font-semibold text-slate-800">
+              Vendors
+            </span>
+          </button>
+
+          <button
+            onClick={() => router.push("/admin/categories")}
+            className="bg-cyan-50 hover:bg-cyan-100 border border-cyan-100 rounded-3xl p-6 transition-all flex flex-col items-center justify-center gap-4"
+          >
+            <div className="w-14 h-14 rounded-2xl bg-cyan-100 text-cyan-700 flex items-center justify-center">
+              <Layers3 />
+            </div>
+
+            <span className="font-semibold text-slate-800">
+              Categories
+            </span>
+          </button>
+
+          <button
+            onClick={() => router.push("/admin/wallet")}
+            className="bg-red-50 hover:bg-red-100 border border-red-100 rounded-3xl p-6 transition-all flex flex-col items-center justify-center gap-4"
+          >
+            <div className="w-14 h-14 rounded-2xl bg-red-100 text-red-700 flex items-center justify-center">
+              <Wallet />
+            </div>
+
+            <span className="font-semibold text-slate-800">
+              Wallet
+            </span>
+          </button>
         </div>
       </div>
     </div>

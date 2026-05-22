@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import api from "../../../lib/api";
+import { filterBookingsBySection, parseBookingList } from "../../../lib/bookings";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -171,8 +172,8 @@ function PaymentMethodModal({
     return null;
   })();
 
-  const walletBalance  = wallet?.balance ?? 0;
-  const dueAmount      = parseFloat(materialCost || "0");
+  const walletBalance    = wallet?.balance ?? 0;
+  const dueAmount        = parseFloat(materialCost || "0");
   const walletSufficient = walletBalance >= dueAmount;
 
   return (
@@ -263,7 +264,7 @@ function PaymentMethodModal({
                     <p className="font-bold text-slate-900 text-sm">Pay from Wallet</p>
                     <p className="text-xs text-slate-500 mt-0.5">
                       Balance: <span className={`font-semibold ${walletSufficient ? "text-green-700" : "text-red-600"}`}>
-                        ₹{(walletBalance).toFixed(2)}
+                        ₹{walletBalance.toFixed(2)}
                       </span>
                       {!walletSufficient && " (insufficient)"}
                     </p>
@@ -323,9 +324,9 @@ function PaymentMethodModal({
 function ServiceBillReceipt({ booking, onClose }: {
   booking: Booking; onClose: () => void;
 }) {
-  const finalAmt     = resolveFinalAmount(booking);
-  const serviceChg   = booking.service_charge;
-  const platformFee  = booking.platform_fee;
+  const finalAmt        = resolveFinalAmount(booking);
+  const serviceChg      = booking.service_charge;
+  const platformFee     = booking.platform_fee;
   const advanceSubtotal = (() => {
     const s = parseFloat(serviceChg  || "0");
     const p = parseFloat(platformFee || "0");
@@ -410,52 +411,32 @@ function ServiceBillReceipt({ booking, onClose }: {
 // ─── Razorpay helper ──────────────────────────────────────────────────────────
 
 async function openRazorpayFinalPayment(bookingId: number): Promise<void> {
-  const intentRes = await api.post(
-    `/booking/${bookingId}/payment/create/`,
-    { stage: "final", gateway: "razorpay" }
-  );
-  const {
-  order_id,
-  amount,
-  key,
-  payment_id,
-} = intentRes.data;
+  const intentRes = await api.post(`/booking/${bookingId}/payment/razorpay/create/`);
+  const { order_id, amount, key, payment_id } = intentRes.data;
 
-return new Promise<void>((resolve, reject) => {
-  const options = {
-    key,
-    amount,
-    currency: "INR",
-    name: "HomeFixer",
-    description: `Final payment for booking #${bookingId}`,
-    order_id,
-
-    handler: async (response: Record<string, string>) => {
-      try {
-        await api.post(
-          `/payment/${payment_id}/verify/razorpay/`,
-          {
-            razorpay_order_id: response.razorpay_order_id,
+  return new Promise<void>((resolve, reject) => {
+    const options = {
+      key,
+      amount,
+      currency: "INR",
+      name: "HomeFixer",
+      description: `Final payment for booking #${bookingId}`,
+      order_id,
+      handler: async (response: Record<string, string>) => {
+        try {
+          await api.post(`/payment/${payment_id}/verify/razorpay/`, {
+            razorpay_order_id:   response.razorpay_order_id,
             razorpay_payment_id: response.razorpay_payment_id,
-            razorpay_signature: response.razorpay_signature,
-          }
-        );
-
-        resolve();
-      } catch (err) {
-        console.error("Verification failed:", err);
-        reject(new Error("Payment verification failed"));
-      }
-    },
-
-    modal: {
-      ondismiss: () => reject(new Error("Payment cancelled")),
-    },
-
-    theme: {
-      color: "#2563eb",
-    },
-  };
+            razorpay_signature:  response.razorpay_signature,
+          });
+          resolve();
+        } catch {
+          reject(new Error("Payment verification failed"));
+        }
+      },
+      modal: { ondismiss: () => reject(new Error("Payment cancelled")) },
+      theme: { color: "#2563eb" },
+    };
 
     const launch = () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -493,13 +474,9 @@ export default function MyBookingsPage() {
   const [payingId,         setPayingId]         = useState<number | null>(null);
   const [walletPayingId,   setWalletPayingId]   = useState<number | null>(null);
   const [payError,         setPayError]         = useState<Record<number, string>>({});
-  // Payment method modal (replaces old bill + inline pay)
   const [payingSummary,    setPayingSummary]    = useState<Booking | null>(null);
-  // Bill receipt for completed bookings
   const [billBooking,      setBillBooking]      = useState<Booking | null>(null);
-  // Tab counts
   const [tabCounts,        setTabCounts]        = useState<Record<Section, number>>({ active: 0, completed: 0, cancelled: 0 });
-  // Wallet
   const [wallet,           setWallet]           = useState<WalletInfo | null>(null);
 
   // ── Boot ────────────────────────────────────────────────────────────────────
@@ -517,28 +494,26 @@ export default function MyBookingsPage() {
   const fetchBookings = async () => {
     setLoading(true); setError("");
     try {
-      const res = await api.get("/bookings/history/", { params: { section } });
-      const data = res.data;
-      setBookings(Array.isArray(data) ? data : data.results ?? []);
+      const res = await api.get("/bookings/history/");
+      const all = parseBookingList(res.data) as Booking[];
+      setBookings(filterBookingsBySection(all, section));
     } catch { setError("Failed to load bookings."); }
     finally { setLoading(false); }
   };
 
   const fetchAllCounts = async () => {
     try {
-      const [a, c, x] = await Promise.all([
-        api.get("/bookings/history/", { params: { section: "active" } }),
-        api.get("/bookings/history/", { params: { section: "completed" } }),
-        api.get("/bookings/history/", { params: { section: "cancelled" } }),
-      ]);
-      const count = (r: { data: unknown }) => {
-        const d = r.data;
-        return Array.isArray(d) ? d.length : (d as { results?: unknown[] }).results?.length ?? 0;
-      };
-      setTabCounts({ active: count(a), completed: count(c), cancelled: count(x) });
+      const res = await api.get("/bookings/history/");
+      const all = parseBookingList(res.data) as Booking[];
+      setTabCounts({
+        active:    filterBookingsBySection(all, "active").length,
+        completed: filterBookingsBySection(all, "completed").length,
+        cancelled: filterBookingsBySection(all, "cancelled").length,
+      });
     } catch { /* ignore */ }
   };
 
+  
   const fetchWallet = async () => {
     try {
       const res = await api.get("/wallet/");
@@ -551,6 +526,7 @@ export default function MyBookingsPage() {
   useEffect(() => { fetchBookings(); }, [section]);
   useEffect(() => { fetchAllCounts(); fetchWallet(); }, []);
 
+  // FIX: /booking/ → /api/booking/
   const handleCancel = async (bookingId: number) => {
     setCancelling(true);
     try {
@@ -558,14 +534,14 @@ export default function MyBookingsPage() {
       setSelectedBooking(null);
       fetchBookings();
       fetchAllCounts();
-      fetchWallet(); // refund may have landed in wallet
+      fetchWallet();
     } catch (err: unknown) {
       const e = err as { response?: { data?: { detail?: string } } };
       alert(e?.response?.data?.detail || "Could not cancel booking.");
     } finally { setCancelling(false); }
   };
 
-  // ── Enrich booking before showing payment modal ──────────────────────────────
+  // FIX: /booking/ → /api/booking/
   const initiatePayment = async (booking: Booking) => {
     try {
       const res = await api.get(`/booking/${booking.id}/details/`);
@@ -580,7 +556,7 @@ export default function MyBookingsPage() {
         grand_total:     d.grand_total     || booking.grand_total,
       };
       setPayingSummary(enriched);
-      await fetchWallet(); // refresh balance right before showing modal
+      await fetchWallet();
     } catch { setPayingSummary(booking); }
   };
 
@@ -621,7 +597,7 @@ export default function MyBookingsPage() {
     } finally { setPayingId(null); }
   };
 
-  // ── Open detail modal ────────────────────────────────────────────────────────
+  // FIX: /booking/ → /api/booking/
   const openDetail = async (booking: Booking) => {
     setLoadingDetail(true);
     try {
@@ -648,6 +624,7 @@ export default function MyBookingsPage() {
     finally { setLoadingDetail(false); }
   };
 
+  // FIX: /booking/ → /api/booking/
   const viewBill = async (booking: Booking) => {
     try {
       const res = await api.get(`/booking/${booking.id}/details/`);
@@ -690,7 +667,6 @@ export default function MyBookingsPage() {
           <p className="text-slate-500 mt-1">Track your current services and review past requests</p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
-          {/* Wallet balance pill */}
           {wallet !== null && (
             <button
               onClick={() => router.push("/customer/wallet")}
@@ -768,10 +744,10 @@ export default function MyBookingsPage() {
             const needsFinalPay =
               booking.final_payment_status === "pending" &&
               (booking.status === "ongoing" || booking.status === "completed");
-            const finalPaid   = booking.final_payment_status === "paid";
-            const isPaying    = payingId === booking.id;
+            const finalPaid      = booking.final_payment_status === "paid";
+            const isPaying       = payingId === booking.id;
             const isWalletPaying = walletPayingId === booking.id;
-            const thisPayErr  = payError[booking.id];
+            const thisPayErr     = payError[booking.id];
 
             return (
               <div key={booking.id}
@@ -827,7 +803,6 @@ export default function MyBookingsPage() {
                       </button>
                     )}
 
-                    {/* Final payment button */}
                     {needsFinalPay && (
                       <div className="w-full lg:w-auto">
                         <button
@@ -840,7 +815,6 @@ export default function MyBookingsPage() {
                             : <>💳 Pay Final Amount{resolveFinalAmount(booking) ? ` ₹${resolveFinalAmount(booking)}` : ""}</>
                           }
                         </button>
-                        {/* Wallet balance hint */}
                         {wallet !== null && wallet.balance > 0 && (
                           <p className="text-xs text-blue-600 mt-1 text-right font-medium">
                             💰 Wallet: ₹{wallet.balance.toFixed(2)} available
@@ -852,7 +826,6 @@ export default function MyBookingsPage() {
                       </div>
                     )}
 
-                    {/* Final paid badge */}
                     {finalPaid && (
                       <div className="flex flex-col items-end gap-1.5">
                         <span className="flex items-center gap-1.5 text-xs font-semibold text-green-700 bg-green-50 border border-green-200 px-3 py-1.5 rounded-full">

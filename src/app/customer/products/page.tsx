@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import api from "../../../lib/api";
+import { filterBookingsBySection, parseBookingList } from "../../../lib/bookings";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -155,13 +156,15 @@ function ApprovalBadge({ order }: { order: MaterialOrder }) {
 
 function OrderCard({
   order,
+  bookingId,
   approvingId,
   onApprove,
   readOnly = false,
 }: {
   order: MaterialOrder;
+  bookingId: number;
   approvingId: number | null;
-  onApprove: (id: number) => void;
+  onApprove: (bookingId: number) => void;
   readOnly?: boolean;
 }) {
   return (
@@ -257,11 +260,11 @@ function OrderCard({
 
       {!readOnly && !order.customer_approve && (
         <button
-          onClick={() => onApprove(order.id)}
-          disabled={approvingId === order.id}
+          onClick={() => onApprove(bookingId)}
+          disabled={approvingId === bookingId}
           className="mt-5 w-full rounded-2xl bg-slate-900 text-white py-3 text-sm font-semibold hover:bg-slate-800 disabled:opacity-60 transition"
         >
-          {approvingId === order.id ? "Approving…" : "Approve Request & Send to Vendor"}
+          {approvingId === bookingId ? "Approving…" : "Approve Request & Send to Vendor"}
         </button>
       )}
     </article>
@@ -306,6 +309,7 @@ function BookingSection({
           <OrderCard
             key={order.id}
             order={order}
+            bookingId={booking.booking_id}
             approvingId={approvingId}
             onApprove={onApprove}
             readOnly={readOnly}
@@ -337,16 +341,15 @@ export default function CustomerProducts() {
     setPendingLoading(true);
     setError("");
     try {
-      const res = await api.get("/bookings/history/", { params: { section: "active" } });
-      const active: unknown[] = Array.isArray(res.data) ? res.data : res.data.results ?? [];
+      const res = await api.get("/bookings/history/");
+      const active = filterBookingsBySection(parseBookingList(res.data), "active")
+        .filter(b => ["accepted", "ongoing"].includes(String(asRecord(b).status || "").toLowerCase()));
 
       const results = await Promise.all(
-        active
-          .filter(b => ["accepted", "ongoing"].includes(String(asRecord(b).status || "").toLowerCase()))
-          .map(async b => {
+        active.map(async b => {
             const r = asRecord(b);
             try {
-              const orderRes = await api.get(`/customer/booking/${r.id}/vendor-products/`);
+              const orderRes = await api.get(`/booking/${r.id}/vendor-tracking/`);
               const normalized = normalizeBooking(orderRes.data, b);
               return normalized.material_orders.length > 0 ? normalized : null;
             } catch { return null; }
@@ -368,14 +371,14 @@ export default function CustomerProducts() {
   const fetchHistory = async () => {
     setHistoryLoading(true);
     try {
-      const res = await api.get("/bookings/history/", { params: { section: "completed" } });
-      const completed: unknown[] = Array.isArray(res.data) ? res.data : res.data.results ?? [];
+      const res = await api.get("/bookings/history/");
+      const completed = filterBookingsBySection(parseBookingList(res.data), "completed");
 
       const results = await Promise.all(
         completed.map(async b => {
           const r = asRecord(b);
           try {
-            const orderRes = await api.get(`/customer/booking/${r.id}/vendor-products/`);
+            const orderRes = await api.get(`/booking/${r.id}/vendor-tracking/`);
             const normalized = normalizeBooking(orderRes.data, b);
             return normalized.material_orders.length > 0 ? normalized : null;
           } catch { return null; }
@@ -397,10 +400,10 @@ export default function CustomerProducts() {
     fetchHistory();
   }, []);
 
-  const handleApprove = async (orderId: number) => {
-    setApprovingId(orderId);
+  const handleApprove = async (bookingId: number) => {
+    setApprovingId(bookingId);
     try {
-      await api.patch(`/material-orders/${orderId}/customer-approve/`);
+      await api.patch(`/booking/${bookingId}/approve/`, { status: "APPROVED" });
       await fetchPending();
     } catch (err: unknown) {
       const e = err as { response?: { data?: { detail?: string } } };

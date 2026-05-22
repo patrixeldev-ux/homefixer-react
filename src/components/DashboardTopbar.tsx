@@ -140,6 +140,8 @@ export default function DashboardTopbar({
   }, []);
 
   // ── Fetch notifications ─────────────────────────────────────────────────────
+  // NOTE: /api/notifications/ returns 404 until the backend route is added.
+  // We suppress the network error and fall back to local (injected) notifs only.
   const fetchNotifs = useCallback(async () => {
     setNotifLoading(true);
     try {
@@ -147,10 +149,17 @@ export default function DashboardTopbar({
       const data = Array.isArray(res.data)
         ? res.data
         : res.data?.results ?? res.data?.notifications ?? [];
-      setNotifs(data);
-    } catch {
-      // Endpoint may not exist yet — show empty state gracefully
-      setNotifs([]);
+      // Merge with any locally-injected notifs (e.g. final-payment warnings)
+      setNotifs(prev => {
+        const localOnly = prev.filter(n => n.id < 0); // negative IDs = local
+        const remoteIds = new Set(data.map((n: Notification) => n.id));
+        const merged = [...localOnly.filter(n => !remoteIds.has(n.id)), ...data];
+        return merged;
+      });
+    } catch (err: unknown) {
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      // 404 = endpoint not deployed yet; silently keep existing local notifs
+      if (status !== 404) setNotifs([]);
     } finally {
       setNotifLoading(false);
     }
@@ -163,19 +172,21 @@ export default function DashboardTopbar({
     if (next) fetchNotifs();
   };
 
-  // Mark single notification as read
+  // Mark single notification as read (local-only for negative IDs)
   const markRead = async (id: number) => {
-    try {
-      await api.patch(`/notifications/${id}/read/`);
-    } catch { /* ignore */ }
+    if (id > 0) {
+      try {
+        await api.patch(`/notifications/${id}/read/`);
+      } catch { /* ignore — endpoint may not exist yet */ }
+    }
     setNotifs(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
   };
 
-  // Mark all as read
+  // Mark all as read (local-only if backend 404s)
   const markAllRead = async () => {
     try {
       await api.post("/notifications/mark-all-read/");
-    } catch { /* ignore */ }
+    } catch { /* ignore — endpoint may not exist yet */ }
     setNotifs(prev => prev.map(n => ({ ...n, is_read: true })));
   };
 
@@ -185,14 +196,17 @@ export default function DashboardTopbar({
 
     const checkBookings = async () => {
       try {
-        const res = await api.get("/bookings/history/", { params: { section: "active" } });
+        const res = await api.get("/bookings/history/");
+        const all = Array.isArray(res.data) ? res.data : res.data?.results ?? [];
         const bookings: Array<{
           id: number;
           service_name: string;
           final_payment_status: string;
           status: string;
           final_amount?: string;
-        }> = Array.isArray(res.data) ? res.data : res.data?.results ?? [];
+        }> = all.filter((b: { status?: string }) =>
+          ["pending", "accepted", "ongoing"].includes(String(b.status ?? "").toLowerCase())
+        );
 
         // Find bookings where serviceman marked done but customer hasn't paid
         const due = bookings.filter(b =>

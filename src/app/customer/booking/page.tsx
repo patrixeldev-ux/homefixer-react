@@ -454,11 +454,10 @@ export default function CustomerBookingPage() {
 
           const res =
             await api.get(
-              "/servicemen/nearby/",
+              "/servicemen/category-nearby/",
               {
                 params: {
-                  category:
-                    form.category,
+                  category: form.category,
                   lat: latitude,
                   lon: longitude,
                 },

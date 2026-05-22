@@ -31,7 +31,7 @@ export default function MapsPage() {
   const fetchTracking = async () => {
     if (!bookingId) { setError("No booking selected."); setLoading(false); return; }
     try {
-      const res = await api.get(`/booking/${bookingId}/track/`);
+      const res = await api.get(`/bookings/${bookingId}/track/`);
       setTracking(res.data);
       setError("");
     } catch (err: any) {

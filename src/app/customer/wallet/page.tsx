@@ -190,7 +190,7 @@ export default function CustomerWalletPage() {
 
   const fetchWithdrawals = async () => {
     try {
-      const res = await api.get("/wallet/withdrawal/request/");
+      const res = await api.get(`/wallet/withdrawal/request/`);
       const data = res.data;
       setWithdrawals(Array.isArray(data) ? data : data.results ?? []);
     } catch { /* ignore */ }

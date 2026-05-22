@@ -37,7 +37,7 @@ export default function AdminAuthPage() {
       if (!form.email) return setError("Email is required");
       setLoading(true);
       try {
-        await api.post("/auth/register/send-otp", { email: form.email });
+        await api.post("/auth/register/send-otp/", { email: form.email });
         setStep(2);
       } catch {
         setError("Failed to send OTP");
@@ -52,7 +52,7 @@ export default function AdminAuthPage() {
       if (!form.otp) return setError("OTP is required");
       setLoading(true);
       try {
-        await api.post("/auth/register/verify-otp", {
+        await api.post("/auth/register/verify-otp/", {
           email: form.email,
           otp: form.otp,
         });
@@ -71,7 +71,7 @@ export default function AdminAuthPage() {
         return setError("All fields required");
       setLoading(true);
       try {
-        await api.post("/auth/register/complete", {
+        await api.post("/auth/register/complete/", {
           email: form.email,
           name: form.name,
           phone: form.phone,

@@ -51,7 +51,7 @@ export default function VendorDashboard() {
 
   const fetchOrders = async () => {
     try {
-      const res = await api.get("/vendor/material-orders/");
+      const res = await api.get("/vendor/orders/");
       setOrders(Array.isArray(res.data) ? res.data : []);
     } catch { /* ignore */ }
   };

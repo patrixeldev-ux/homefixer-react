@@ -134,26 +134,23 @@ export default function BookingDetailPage() {
     if (!serviceCharge) return;
     setSavingCharge(true);
     try {
-      await api.patch(`/booking/${bookingId}/service-charge/`, {
-        service_charge: serviceCharge,
-      });
-      await fetchBooking();
       setStep("vendors");
-    } catch {
-      alert("Failed to update service charge");
     } finally {
       setSavingCharge(false);
     }
   };
 
   /* ===== FETCH VENDORS ===== */
-  const fetchVendors = async (categoryId: number) => {
+  const fetchVendors = async (_categoryId: number) => {
     setVendorsLoading(true);
     try {
-      const res = await api.get(
-        `/booking/${bookingId}/vendors/nearby/?category_id=${categoryId}`
+      const pos = await new Promise<GeolocationPosition>((resolve, reject) =>
+        navigator.geolocation.getCurrentPosition(resolve, reject)
       );
-      setVendors(res.data.vendors ?? []);
+      const res = await api.get("/vendors/nearby/", {
+        params: { lat: pos.coords.latitude, lon: pos.coords.longitude },
+      });
+      setVendors(Array.isArray(res.data) ? res.data : res.data?.vendors ?? []);
     } catch {
       alert("Failed to fetch nearby vendors");
     } finally {
@@ -173,13 +170,25 @@ export default function BookingDetailPage() {
   setSelectedVendor(vendor);
   setProductsLoading(true);
   try {
-    const res = await api.get(
-      `/booking/${bookingId}/vendors/${vendor.vendor_id}/products/?category_id=${selectedCategory.id}`
+    const pos = await new Promise<GeolocationPosition>((resolve, reject) =>
+      navigator.geolocation.getCurrentPosition(resolve, reject)
     );
-    setProducts(res.data.products ?? []);
+    const res = await api.get("/products/nearby/", {
+      params: {
+        lat: pos.coords.latitude,
+        lon: pos.coords.longitude,
+        booking_id: bookingId,
+      },
+    });
+    const all = Array.isArray(res.data) ? res.data : res.data?.products ?? [];
+    const vendorId = vendor.vendor_id ?? (vendor as { id?: number }).id;
+    setProducts(vendorId ? all.filter((p: { vendor?: number; vendor_id?: number }) =>
+      (p.vendor_id ?? p.vendor) === vendorId
+    ) : all);
     setStep("products");
-  } catch (err: any) {
-    const msg = err?.response?.data?.detail || err?.response?.data?.error || "Failed to fetch vendor products";
+  } catch (err: unknown) {
+    const e = err as { response?: { data?: { detail?: string; error?: string } } };
+    const msg = e?.response?.data?.detail || e?.response?.data?.error || "Failed to fetch vendor products";
     alert(msg);
   } finally {
     setProductsLoading(false);
@@ -215,13 +224,15 @@ export default function BookingDetailPage() {
     if (!selectedVendor || !selectedCategory || cart.length === 0) return;
     setOrdering(true);
     try {
-      await api.post("/material-orders/create/", {
-        booking_id: parseInt(bookingId),
-        vendor_id: selectedVendor.vendor_id,   // ✅ fixed
-        category_id: selectedCategory.id,
-        urgency: "MEDIUM",
-        items: cart.map(i => ({ product_id: i.product.id, quantity: i.quantity })),
-      });
+      let chargeApplied = false;
+      for (const item of cart) {
+        await api.post(`/booking/${bookingId}/add-product/`, {
+          product_id: item.product.id,
+          quantity: item.quantity,
+          service_charge: !chargeApplied ? parseFloat(serviceCharge || "0") : 0,
+        });
+        chargeApplied = true;
+      }
       setOrderSuccess(true);
       setCart([]);
       setStep("detail");
@@ -238,7 +249,7 @@ export default function BookingDetailPage() {
     setCompleting(true);
     setConfirmingDone(false);
     try {
-      await api.patch(`/booking/${bookingId}/complete/`);
+      await api.post(`/serviceman/booking/${bookingId}/complete/`);
       // Set local flag immediately so UI reacts even if backend
       // doesn't return serviceman_marked_done in the details response
       setMarkedDoneLocally(true);
@@ -574,11 +585,6 @@ export default function BookingDetailPage() {
             
             setSavingCharge(true);
             try {
-              await api.patch(`/booking/${bookingId}/service-charge/`, {
-                service_charge: serviceCharge,
-              });
-              await fetchBooking();
-              // ✅ Now fetch vendors and navigate
               setStep("vendors");
               fetchVendors(selectedCategory.id);
             } catch {
