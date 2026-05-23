@@ -39,7 +39,11 @@ export default function VendorProductsPage() {
     catch { console.error("Products fetch failed"); }
   };
   const fetchCategories = async () => {
-    try { const res = await api.get("/product-categories/"); setCategories(Array.isArray(res.data) ? res.data : []); }
+    try {
+      const res = await api.get("/categories/", { params: { category_type: "PRODUCT" } });
+      const cats = Array.isArray(res.data) ? res.data : [];
+      setCategories(cats.filter(c => c.category_type === "PRODUCT"));
+    }
     catch { console.error("Categories fetch failed"); }
   };
 

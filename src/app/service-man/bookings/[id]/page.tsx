@@ -124,8 +124,9 @@ export default function BookingDetailPage() {
 
   const fetchCategories = async () => {
     try {
-      const res = await api.get("/product-categories/");
-      setCategories(Array.isArray(res.data) ? res.data : []);
+      const res = await api.get("/categories/", { params: { category_type: "PRODUCT" } });
+      const cats = Array.isArray(res.data) ? res.data : [];
+      setCategories(cats.filter(c => c.category_type === "PRODUCT"));
     } catch { console.error("Categories fetch failed"); }
   };
 

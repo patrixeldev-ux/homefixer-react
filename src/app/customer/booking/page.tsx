@@ -407,9 +407,9 @@ export default function CustomerBookingPage() {
 
   useEffect(() => {
     api
-      .get("/categories/")
+      .get("/categories/", { params: { category_type: "SERVICE" } })
       .then((res) =>
-        setCategories(res.data)
+        setCategories(res.data.filter((c: any) => c.category_type === "SERVICE" || !c.category_type))
       )
       .finally(() =>
         setLoadingCats(false)
@@ -590,6 +590,10 @@ export default function CustomerBookingPage() {
 
       const fd = new FormData();
 
+      const now = new Date();
+      const currentDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+      const currentTime24 = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+
       fd.append(
         "serviceman",
         String(selectedWorker?.id)
@@ -597,13 +601,13 @@ export default function CustomerBookingPage() {
 
       fd.append(
         "scheduled_date",
-        form.scheduled_date
+        currentDate
       );
 
       fd.append(
         "scheduled_time",
         convertTo12hr(
-          form.scheduled_time
+          currentTime24
         )
       );
 
@@ -953,31 +957,8 @@ export default function CustomerBookingPage() {
           {step === 3 && (
             <div className="space-y-4">
 
-              <div className="grid grid-cols-2 gap-3">
-
-                <input
-                  type="date"
-                  name="scheduled_date"
-                  value={
-                    form.scheduled_date
-                  }
-                  onChange={
-                    handleChange
-                  }
-                  className="border rounded-xl px-4 py-3"
-                />
-
-                <input
-                  type="time"
-                  name="scheduled_time"
-                  value={
-                    form.scheduled_time
-                  }
-                  onChange={
-                    handleChange
-                  }
-                  className="border rounded-xl px-4 py-3"
-                />
+              <div className="hidden">
+                {/* Date and Time are now automatically captured on submit */}
               </div>
 
               <input

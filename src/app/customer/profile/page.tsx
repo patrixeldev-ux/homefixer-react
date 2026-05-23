@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   FiUser, FiMail, FiPhone, FiMapPin,
-  FiCheckCircle, FiEdit2, FiX,
+  FiCheckCircle, FiEdit2, FiX, FiMap
 } from "react-icons/fi";
 import api from "../../../lib/api";
 
@@ -12,7 +12,10 @@ interface Customer {
   name: string;
   email: string;
   phone?: string;
-  address?: string;
+  address?: string; // fallback
+  default_address?: string;
+  default_lat?: number | null;
+  default_long?: number | null;
   avatar?: string;
 }
 
@@ -22,6 +25,7 @@ export default function CustomerProfile() {
   const [loading,    setLoading]    = useState(true);
   const [saving,     setSaving]     = useState(false);
   const [isEditing,  setIsEditing]  = useState(false);
+  const [detecting,  setDetecting]  = useState(false);
   const [customer,   setCustomer]   = useState<Customer | null>(() => {
     if (typeof window === "undefined") return null;
     try {
@@ -29,15 +33,25 @@ export default function CustomerProfile() {
       return s && s !== "undefined" ? JSON.parse(s) : null;
     } catch { return null; }
   });
-  const [form,       setForm]       = useState({ name: "", phone: "", address: "" });
+  const [form,       setForm]       = useState({ name: "", phone: "", address: "", lat: null as number | null, long: null as number | null });
   const [successMsg, setSuccessMsg] = useState("");
   const [errorMsg,   setErrorMsg]   = useState("");
+
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const searchTimeout = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     (async () => {
       try {
         const res = await api.get("/profile/");
-        const u: Customer = res.data.user ?? res.data;
+        // Merge user and profile data
+        const u: Customer = {
+          ...(res.data.user || {}),
+          ...(res.data.profile || {}),
+          // ensure address is picked from either default_address or address
+          address: res.data.profile?.default_address || res.data.user?.address || "",
+        };
         setCustomer(u);
         localStorage.setItem("user", JSON.stringify(u));
       } catch { /* use cached */ }
@@ -47,12 +61,93 @@ export default function CustomerProfile() {
 
   const startEditing = () => {
     if (!customer) return;
-    setForm({ name: customer.name || "", phone: customer.phone || "", address: customer.address || "" });
+    setForm({ 
+      name: customer.name || "", 
+      phone: customer.phone || "", 
+      address: customer.default_address || customer.address || "",
+      lat: customer.default_lat || null,
+      long: customer.default_long || null,
+    });
     setErrorMsg("");
     setIsEditing(true);
   };
 
-  const cancelEditing = () => { setIsEditing(false); setErrorMsg(""); };
+  const cancelEditing = () => { 
+    setIsEditing(false); 
+    setErrorMsg(""); 
+    setSuggestions([]);
+    setShowSuggestions(false);
+  };
+
+  const handleAddressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setForm(f => ({ ...f, address: val }));
+    
+    if (searchTimeout.current) clearTimeout(searchTimeout.current);
+    
+    if (val.length < 3) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+
+    searchTimeout.current = setTimeout(async () => {
+      try {
+        // Fetch suggestions restricted to India (countrycodes=in)
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(val)}&format=json&addressdetails=1&limit=5&countrycodes=in`);
+        const data = await res.json();
+        setSuggestions(data);
+        setShowSuggestions(true);
+      } catch (e) {
+        console.error("Failed to fetch address suggestions", e);
+      }
+    }, 600);
+  };
+
+  const handleSelectSuggestion = (suggestion: any) => {
+    setForm(f => ({ 
+      ...f, 
+      address: suggestion.display_name, 
+      lat: parseFloat(suggestion.lat), 
+      long: parseFloat(suggestion.lon) 
+    }));
+    setSuggestions([]);
+    setShowSuggestions(false);
+  };
+
+  const detectLocation = () => {
+    if (!("geolocation" in navigator)) {
+      alert("Geolocation is not supported by your browser");
+      return;
+    }
+    setDetecting(true);
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+        
+        let foundAddress = form.address;
+        try {
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+          const data = await res.json();
+          if (data && data.display_name) {
+            foundAddress = data.display_name;
+          }
+        } catch (e) {
+          console.error("Reverse geocoding failed", e);
+        }
+
+        setForm(f => ({ ...f, lat: lat, long: lng, address: foundAddress }));
+        setDetecting(false);
+        setSuggestions([]);
+        setShowSuggestions(false);
+      },
+      (error) => {
+        alert("Could not get location. Please allow location access in your browser.");
+        setDetecting(false);
+      }
+    );
+  };
 
   const handleSave = async () => {
     if (!form.name.trim()) { setErrorMsg("Name is required."); return; }
@@ -61,11 +156,25 @@ export default function CustomerProfile() {
       const fd = new FormData();
       fd.append("name", form.name);
       fd.append("phone", form.phone);
-      if (form.address) fd.append("address", form.address);
+      if (form.address) fd.append("default_address", form.address);
+      if (form.lat !== null) fd.append("default_lat", form.lat.toString());
+      if (form.long !== null) fd.append("default_long", form.long.toString());
+
       const res = await api.put("/profile/customer/update/", fd, {
         headers: { "Content-Type": "multipart/form-data" },
       });
-      const updated: Customer = { ...customer!, ...(res.data.user ?? res.data ?? {}), ...form };
+      
+      const updated: Customer = { 
+        ...customer!, 
+        ...(res.data.user ?? {}), 
+        ...(res.data.profile ?? {}),
+        name: form.name,
+        phone: form.phone,
+        address: form.address,
+        default_address: form.address,
+        default_lat: form.lat,
+        default_long: form.long
+      };
       setCustomer(updated);
       localStorage.setItem("user", JSON.stringify(updated));
       setIsEditing(false);
@@ -83,7 +192,6 @@ export default function CustomerProfile() {
     </div>
   );
 
-  const initial = customer?.name?.[0]?.toUpperCase() ?? "C";
   const avatarSrc = customer?.avatar && customer.avatar !== ""
     ? customer.avatar
     : `https://ui-avatars.com/api/?name=${encodeURIComponent(customer?.name || "U")}&background=2563eb&color=fff&size=128`;
@@ -140,7 +248,7 @@ export default function CustomerProfile() {
               {[
                 { icon: <FiMail size={12} />,  label: "Email",   value: customer?.email   || "—" },
                 { icon: <FiPhone size={12} />, label: "Phone",   value: customer?.phone   || "Not set" },
-                { icon: <FiMapPin size={12} />,label: "Address", value: customer?.address || "Not set" },
+                { icon: <FiMapPin size={12} />,label: "Address", value: customer?.default_address || customer?.address || "Not set" },
               ].map(row => (
                 <div key={row.label} className="flex justify-between items-start py-1.5 border-b border-gray-50 last:border-0 gap-2">
                   <span className="text-gray-500 flex items-center gap-1.5 flex-shrink-0">{row.icon} {row.label}</span>
@@ -189,7 +297,7 @@ export default function CustomerProfile() {
                   { icon: <FiUser size={15} />,  label: "Full Name", value: customer?.name    },
                   { icon: <FiMail size={15} />,  label: "Email",     value: customer?.email   },
                   { icon: <FiPhone size={15} />, label: "Phone",     value: customer?.phone   },
-                  { icon: <FiMapPin size={15} />,label: "Address",   value: customer?.address },
+                  { icon: <FiMapPin size={15} />,label: "Address",   value: customer?.default_address || customer?.address },
                 ].map(f => (
                   <div key={f.label} className="flex items-start gap-3">
                     <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center text-blue-500 flex-shrink-0 mt-0.5">
@@ -225,9 +333,52 @@ export default function CustomerProfile() {
                     placeholder="+91 98765 43210" className={inp} />
                 </div>
                 <div>
-                  <label className={lbl}>Address</label>
-                  <input value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))}
-                    placeholder="Your address" className={inp} />
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-sm font-semibold text-gray-700">Address</label>
+                    <button 
+                      type="button" 
+                      onClick={detectLocation}
+                      disabled={detecting}
+                      className="flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-800 transition-colors bg-blue-50 px-2.5 py-1.5 rounded-lg border border-blue-200"
+                    >
+                      {detecting ? (
+                        <><span className="w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" /> Locating...</>
+                      ) : (
+                        <><FiMap size={12} /> Detect Location</>
+                      )}
+                    </button>
+                  </div>
+                  
+                  <div className="relative">
+                    <input 
+                      value={form.address} 
+                      onChange={handleAddressChange}
+                      placeholder="Start typing your address..." 
+                      className={inp} 
+                    />
+                    
+                    {showSuggestions && suggestions.length > 0 && (
+                      <div className="absolute z-10 w-full bg-white border border-gray-200 mt-1 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                        {suggestions.map((s, idx) => (
+                          <div 
+                            key={s.place_id || idx} 
+                            onClick={() => handleSelectSuggestion(s)} 
+                            className="p-3 hover:bg-blue-50 cursor-pointer border-b border-gray-50 last:border-0"
+                          >
+                            <p className="text-sm text-gray-800 font-medium leading-tight">
+                              {s.display_name}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {form.lat && form.long && (
+                    <p className="text-xs text-green-600 mt-1.5 flex items-center gap-1 font-medium">
+                      <FiCheckCircle /> Location pinned successfully ({Number(form.lat).toFixed(4)}, {Number(form.long).toFixed(4)})
+                    </p>
+                  )}
                 </div>
               </div>
             )}

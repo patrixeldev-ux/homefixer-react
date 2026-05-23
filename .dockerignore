@@ -1,0 +1,14 @@
+node_modules
+.next
+out
+.git
+.gitignore
+.vscode
+Dockerfile
+docker-compose.yml
+.dockerignore
+README.md
+TODO.md
+TRACKING_FEATURE_README.md
+package-lock.json
+*.log

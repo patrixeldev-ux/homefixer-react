@@ -342,7 +342,7 @@ export default function CustomerProducts() {
     setError("");
     try {
       const res = await api.get("/bookings/history/");
-      const active = filterBookingsBySection(parseBookingList(res.data), "active")
+      const active = filterBookingsBySection(parseBookingList(res.data) as { status?: unknown }[], "active")
         .filter(b => ["accepted", "ongoing"].includes(String(asRecord(b).status || "").toLowerCase()));
 
       const results = await Promise.all(
@@ -372,7 +372,7 @@ export default function CustomerProducts() {
     setHistoryLoading(true);
     try {
       const res = await api.get("/bookings/history/");
-      const completed = filterBookingsBySection(parseBookingList(res.data), "completed");
+      const completed = filterBookingsBySection(parseBookingList(res.data) as { status?: unknown }[], "completed");
 
       const results = await Promise.all(
         completed.map(async b => {
