@@ -3,6 +3,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import api from "../../lib/api";
+import { GoogleLogin } from "@react-oauth/google";
+import { useAuth } from "../../contexts/AuthContext";
 
 // ─── Role → dashboard mapping ─────────────────────────────────────────────────
 const ROLE_REDIRECT: Record<string, string> = {
@@ -129,6 +131,7 @@ function Particles() {
 export default function UnifiedAuthPage() {
   const router  = useRouter();
   const [mounted, setMounted] = useState(false);
+  const { loginWithGoogle } = useAuth() as any;
 
   // Step 1 = email, Step 2 = OTP
   const [step,    setStep]    = useState<1 | 2>(1);
@@ -137,6 +140,27 @@ export default function UnifiedAuthPage() {
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState("");
   const [detectedRole, setDetectedRole] = useState<string | null>(null);
+
+  const handleGoogleSuccess = async (credentialResponse: { credential?: string }) => {
+    if (credentialResponse?.credential) {
+      setError("");
+      setLoading(true);
+      try {
+        await loginWithGoogle(credentialResponse.credential, (path: string) => {
+          router.push(path);
+        });
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        setError(msg || "Google Authentication failed.");
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
+  const handleGoogleError = () => {
+    setError("Google Sign-In was unsuccessful. Please try again.");
+  };
 
   // Resend cooldown
   const [resendCooldown, setResendCooldown] = useState(0);
@@ -410,8 +434,26 @@ export default function UnifiedAuthPage() {
                 </button>
               </form>
 
+              <div style={styles.dividerRow}>
+                <div style={styles.dividerLine} />
+                <span style={styles.dividerText}>or continue with</span>
+                <div style={styles.dividerLine} />
+              </div>
+
+              <div style={styles.googleBtnWrapper}>
+                <GoogleLogin
+                  onSuccess={handleGoogleSuccess}
+                  onError={handleGoogleError}
+                  theme="filled_blue"
+                  shape="pill"
+                  size="large"
+                  width="368px"
+                  text="signin_with"
+                />
+              </div>
+
               <p style={styles.registerHint}>
-                Don't have an account?{" "}
+                Don&apos;t have an account?{" "}
                 <span
                   className="register-link"
                   style={styles.registerLink}
@@ -725,6 +767,32 @@ const styles: Record<string, React.CSSProperties> = {
     fontFamily: "'Sora', sans-serif",
     letterSpacing: "0.2px",
     marginTop: 4,
+  },
+  dividerRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: 12,
+    margin: "24px 0 16px",
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    background: "rgba(255, 255, 255, 0.12)",
+  },
+  dividerText: {
+    fontSize: 11,
+    color: "rgba(255, 255, 255, 0.4)",
+    textTransform: "uppercase" as const,
+    letterSpacing: "1px",
+    fontWeight: 600,
+  },
+  googleBtnWrapper: {
+    display: "flex",
+    justifyContent: "center",
+    width: "100%",
+    marginTop: 4,
+    borderRadius: 12,
+    overflow: "hidden",
   },
 
   // ── Error ──
