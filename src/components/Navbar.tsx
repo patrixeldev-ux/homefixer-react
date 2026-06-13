@@ -26,7 +26,8 @@ export default function Navbar() {
             width={180}
             height={56}
             priority
-            className="h-14 w-auto object-contain transition-transform duration-300 group-hover:scale-[1.02] md:h-18"
+            style={{ width: "auto", height: "auto" }}
+            className="h-14 object-contain transition-transform duration-300 group-hover:scale-[1.02] md:h-18"
           />
         </Link>
 

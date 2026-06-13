@@ -38,7 +38,7 @@ export default function VendorSidebar() {
 
       {/* Logo — no label */}
       <div className="px-5 py-4 border-b border-white/10 flex items-center">
-        <Image src="/logo.jpeg" alt="HomeFixer" width={120} height={40} className="h-10 w-auto object-contain" loading="eager" priority />
+        <Image src="/logo.jpeg" alt="HomeFixer" width={120} height={40} style={{ width: "auto", height: "auto" }} className="h-10 object-contain" loading="eager" priority />
       </div>
 
       {/* Nav */}

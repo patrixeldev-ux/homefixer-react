@@ -50,10 +50,10 @@ export default function CustomerSidebar() {
         <Image
           src="/logo.jpeg"
           alt="HomeFixer"
-          width={0}
-          height={0}
-          sizes="100vw"
-          className="h-10 w-auto object-contain"
+          width={120}
+          height={40}
+          style={{ width: "auto", height: "auto" }}
+          className="h-10 object-contain"
           loading="eager"
           priority
         />
